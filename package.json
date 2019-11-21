@@ -1,0 +1,12 @@
+{
+    "name": "generate-matrix-js-sdk-type",
+    "version": "1.0.0",
+    "main": "index.js",
+    "license": "MIT",
+    "private": true,
+    "dependencies": {
+        "@types/node": "^12.12.9",
+        "ts-morph": "^5.0.0",
+        "ts-node": "^8.5.2"
+    }
+}
