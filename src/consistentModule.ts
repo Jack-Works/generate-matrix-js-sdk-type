@@ -23,5 +23,6 @@ export function consistentModule(project: Project) {
                 importDeclaration.replaceWithText(`require("${moduleSpecifier}");`)
             }
         }
+        console.log('Fix the mix use of ESModule and CommonJS for', sourceFile.getFilePath())
     }
 }
