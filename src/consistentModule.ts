@@ -10,7 +10,8 @@ export function consistentModule(project: Project) {
             // import * as n
             const nsImport = importDeclaration.getNamespaceImport()
             const moduleSpecifier = importDeclaration.getModuleSpecifierValue()
-            if (defaultImport || nsImport)
+            if (moduleSpecifier === 'bluebird') importDeclaration.remove()
+            else if (defaultImport || nsImport)
                 importDeclaration.replaceWithText(
                     `const ${(defaultImport || nsImport)!.getText()} = require("${moduleSpecifier}");`
                 )

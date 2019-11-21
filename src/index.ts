@@ -1,7 +1,7 @@
 import { join } from 'path'
 import { es5ClassUpgrade as es5Upgrade } from './es5Upgrade'
 import { consistentModule } from './consistentModule'
-import { CompilerOptions, IndentationText } from 'ts-morph'
+import { CompilerOptions, IndentationText, ts, ScriptTarget } from 'ts-morph'
 import { Project } from 'ts-morph'
 import { fixForCrashes } from './fixForCrashes'
 import { version } from 'typescript/built/local/typescript'
@@ -20,7 +20,10 @@ const compilerOptions: CompilerOptions = {
     sourceRoot: sourceRoot,
     declarationMap: true,
     composite: true,
-    emitDeclarationOnly: true
+    emitDeclarationOnly: true,
+    esModuleInterop: true,
+    allowSyntheticDefaultImports: true,
+    target: ScriptTarget.ESNext
 }
 
 rimraf.sync(dtsRoot)
@@ -42,8 +45,12 @@ es5Upgrade(project)
 // all cjs to es import
 ESModuleFix(project)
 
-// project.save()
-project.emit().then(x => {
+project.save()
+console.log('Emitting .d.ts files')
+project.emit({ emitOnlyDtsFiles: true }).then(x => {
     project.formatDiagnosticsWithColorAndContext(x.getDiagnostics())
+    if (x.getEmitSkipped()) {
+        console.log('Warning! Emit skipped')
+    }
     console.log('.d.ts emitted')
-})
+}, console.error)

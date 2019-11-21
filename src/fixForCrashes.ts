@@ -32,6 +32,22 @@ export function fixForCrashes(project: Project, matrixRoot: string) {
             console.log('Fix MatrixError')
         } catch {}
     }
+    tryReplace(project, join(matrixRoot, 'crypto/olmlib.js'), x =>
+        x
+            .replace(
+                //
+                `const _verifySignature = module.exports.verifySignature = async function`,
+                `module.exports.verifySignature = async function`
+            )
+            .replace(
+                //
+                `module.exports.pkSign =`,
+                `const _verifySignature = module.exports.verifySignature\nmodule.exports.pkSign =`
+            )
+    )
+    tryReplace(project, join(matrixRoot, 'utils.js'), x =>
+        x.replace(`const deepCompare = module.exports.deepCompare = function`, `module.exports.deepCompare = function`)
+    )
 }
 
 function fixModuleExportsPrototype(project: Project, fileName: string, className: string) {
@@ -42,18 +58,25 @@ function fixModuleExportsPrototype(project: Project, fileName: string, className
         fileName,
         'see https://github.com/microsoft/TypeScript/issues/35228'
     )
-    const file = project.getSourceFileOrThrow(fileName)
-    let text = file.getText(true)
-    text = text
-        .replace(
-            //
-            `module.exports.${className} = function ${className}`,
-            `function ${className}`
-        )
-        .replace(
-            //
-            `module.exports.${className}.prototype`,
-            `module.exports.${className} = ${className};\n${className}.prototype`
-        )
-    file.replaceWithText(text)
+    tryReplace(project, fileName, x =>
+        x
+            .replace(
+                //
+                `module.exports.${className} = function ${className}`,
+                `function ${className}`
+            )
+            .replace(
+                //
+                `module.exports.${className}.prototype`,
+                `module.exports.${className} = ${className};\n${className}.prototype`
+            )
+    )
+}
+function tryReplace(project: Project, path: string, replacer: (x: string) => string) {
+    try {
+        const file = project.getSourceFileOrThrow(path)
+        let text = file.getText(true)
+        text = replacer(text)
+        file.replaceWithText(text)
+    } catch {}
 }
