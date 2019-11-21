@@ -8,6 +8,7 @@ import { version } from 'typescript/built/local/typescript'
 // @ts-ignore
 import rimraf from 'rimraf'
 import { ESModuleFix } from './ESModuleFix'
+import { afterFixes } from './afterFixes'
 
 const matrixRoot = join(__dirname, '../../matrix-js-sdk/src/')
 const dtsRoot = join(__dirname, '../../matrix-js-sdk-type/dts')
@@ -44,6 +45,8 @@ consistentModule(project)
 es5Upgrade(project)
 // all cjs to es import
 ESModuleFix(project)
+
+afterFixes(project, matrixRoot)
 
 project.save()
 console.log('Emitting .d.ts files')
