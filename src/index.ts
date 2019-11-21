@@ -45,10 +45,9 @@ consistentModule(project)
 es5Upgrade(project)
 // all cjs to es import
 ESModuleFix(project)
-
 afterFixes(project, matrixRoot)
 
-project.save()
+// project.save()
 console.log('Emitting .d.ts files')
 project.emit({ emitOnlyDtsFiles: true }).then(x => {
     project.formatDiagnosticsWithColorAndContext(x.getDiagnostics())

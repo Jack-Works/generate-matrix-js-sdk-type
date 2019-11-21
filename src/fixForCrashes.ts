@@ -77,6 +77,6 @@ export function tryReplace(project: Project, path: string, replacer: (x: string)
         const file = project.getSourceFileOrThrow(path)
         let text = file.getText(true)
         text = replacer(text)
-        file.replaceWithText(text)
+        file.replaceWithText(x => x.write(text))
     } catch {}
 }
