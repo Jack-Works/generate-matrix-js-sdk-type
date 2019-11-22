@@ -1,4 +1,4 @@
-import { Project, ts, VariableStatement, TypeGuards } from 'ts-morph'
+import { Project } from 'ts-morph'
 import { tryReplace } from './fixForCrashes'
 import { join } from 'path'
 
@@ -28,5 +28,13 @@ export function afterFixes(project: Project, matrixRoot: string) {
     }
     tryReplace(project, join(matrixRoot, 'store/memory.js'), x =>
         x.replace(`module.exports.MemoryStore = MemoryStore;`, `export { MemoryStore }`)
+    )
+    // Fix "Promise" is a private symbol.
+    tryReplace(
+        project,
+        join(matrixRoot, 'client.js'),
+        x =>
+            `const Promise_ = globalThis.Promise; type Promise_<T = any> = Promise_<T>` +
+            x.replace(/module:client.Promise/g, 'Promise').replace(/Promise/g, 'Promise_')
     )
 }
