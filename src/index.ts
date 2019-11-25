@@ -9,6 +9,7 @@ import { version } from 'typescript/built/local/typescript'
 import rimraf from 'rimraf'
 import { ESModuleFix } from './ESModuleFix'
 import { afterFixes } from './afterFixes'
+import { JSDocTypeResolution } from './JSDocTypeResolution'
 
 const matrixRoot = join(__dirname, '../../matrix-js-sdk/src/')
 const dtsRoot = join(__dirname, '../../matrix-js-sdk-type/dts')
@@ -45,6 +46,7 @@ consistentModule(project)
 es5Upgrade(project)
 // all cjs to es import
 ESModuleFix(project)
+JSDocTypeResolution(project, matrixRoot)
 afterFixes(project, matrixRoot)
 
 // project.save()
