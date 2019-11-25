@@ -15,6 +15,30 @@ import { join } from 'path'
  */
 const pattern = /export \{ _(.+?) as (.+?) \}/g
 export function afterFixes(project: Project, matrixRoot: string) {
+    tryReplace(project, join(matrixRoot, 'http-api.js'), x =>
+        // A required parameter cannot follow an optional parameter.
+        x.replace(/@param {Object} data The HTTP JSON body./g, `@param {Object} [data] The HTTP JSON body.`)
+    )
+    tryReplace(project, join(matrixRoot, 'store/memory.js'), x =>
+        // broken export not fixed
+        x.replace(`module.exports.MemoryStore = MemoryStore;`, `export { MemoryStore }`)
+    )
+    // Fix "Promise" is a private symbol.
+    tryReplace(
+        project,
+        join(matrixRoot, 'client.js'),
+        x =>
+            `const Promise_: typeof globalThis['Promise'] = globalThis.Promise; type Promise_<T = any> = Promise<T>;` +
+            x
+                .replace(/module:client.Promise/g, 'Promise')
+                .replace(/Promise/g, 'Promise_')
+                // A required parameter cannot follow an optional parameter.
+                .replace(
+                    /@param {module:client.callback} callback Optional./g,
+                    `@param {module:client.callback} [callback] Optional.`
+                )
+                .replace(/@param {string\[\]} userIds/g, `@param {string[]} [userIds]`)
+    )
     for (let sourceFile of project.getSourceFiles()) {
         // @ts-ignore
         const allBreakingExports: string[] = Array.from(sourceFile.getText().matchAll(pattern)).map(x => x[1])
@@ -24,17 +48,11 @@ export function afterFixes(project: Project, matrixRoot: string) {
                 if (!x) return
                 x.replaceWithText('export ' + x.getText(true))
             })
-        if (allBreakingExports.length) tryReplace(project, sourceFile.getFilePath(), x => x.replace(pattern, ''))
+        tryReplace(project, sourceFile.getFilePath(), x =>
+            x
+                // JSDoc style type reference
+                .replace(/{\?module:.+?}/g, `{any}`)
+                .replace(pattern, '')
+        )
     }
-    tryReplace(project, join(matrixRoot, 'store/memory.js'), x =>
-        x.replace(`module.exports.MemoryStore = MemoryStore;`, `export { MemoryStore }`)
-    )
-    // Fix "Promise" is a private symbol.
-    tryReplace(
-        project,
-        join(matrixRoot, 'client.js'),
-        x =>
-            `const Promise_ = globalThis.Promise; type Promise_<T = any> = Promise_<T>` +
-            x.replace(/module:client.Promise/g, 'Promise').replace(/Promise/g, 'Promise_')
-    )
 }
