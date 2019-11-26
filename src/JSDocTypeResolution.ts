@@ -1,13 +1,5 @@
 import {
     Project,
-    ts,
-    CommentRange,
-    TaggedTemplateExpression,
-    JSDoc,
-    JsxAttribute,
-    TextChange,
-    Statement,
-    ClassDeclaration,
     ImportDeclarationStructure,
     StructureKind,
     ImportSpecifierStructure,
@@ -39,7 +31,6 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
                 .getFilePath()
         )
     }
-    moduleMap.set('crypto-deviceinfo', moduleMap.get('crypto/deviceinfo')!)
     appendModuleAtPath('crypto/store/base')
     appendModuleAtPath('crypto/OlmDevice')
     appendModuleAtPath('crypto/algorithms/base')
@@ -290,11 +281,10 @@ function JSDocTagReplace(
             else if (n === 'class') nextType.name = 'any'
             else if (['int', 'float', 'Number', 'integer'].includes(n))
                 nextType.name = 'number'
-            else if (['bool', 'Boolean', 'bolean'].includes(n))
-                nextType.name = 'boolean'
+            else if (['bool', 'Boolean'].includes(n)) nextType.name = 'boolean'
             else if (n === 'Object') nextType.name = 'object'
-            else if (n === 'String' || n === 'sring') nextType.name = 'string'
-            // else if (n === 'Array' || n === 'array') nextType.name = 'any[]'
+            else if (n === 'String') nextType.name = 'string'
+            else if (n === 'array') nextType.name = 'Array'
             else if (n === 'Promise' || n === 'promise')
                 nextType.name = 'Promise'
             else if (n.startsWith('module:')) {

@@ -49,7 +49,7 @@ ESModuleFix(project)
 JSDocTypeResolution(project, matrixRoot)
 afterFixes(project, matrixRoot)
 
-project.save()
+// project.save()
 console.log('Emitting .d.ts files')
 
 // const needEmit = false

@@ -83,7 +83,22 @@ export function preFix(project: Project, matrixRoot: string) {
                     `module.exports.deepCompare = function`
                 )
             )
+        } else if (path.endsWith('client.js')) {
+            _.replace(x =>
+                x.replace(
+                    '  * @typedef {Object} Promise',
+                    '  * @typedef {Object} PromiseDeprecated'
+                )
+            )
         }
+
+        _.replace(x =>
+            x
+                .replace(/crypto-deviceinfo/g, 'crypto/deviceinfo')
+                .replace(/bolean/g, 'boolean')
+                .replace(/sring/g, 'string')
+                .replace(/module:client\.Promise/g, 'Promise')
+        )
         _.apply()
     }
     console.log('Prefix done.')

@@ -22,32 +22,6 @@ export function afterFixes(project: Project, matrixRoot: string) {
             `@param {Object} [data] The HTTP JSON body.`
         )
     )
-    tryReplace(project, join(matrixRoot, 'store/memory.js'), x =>
-        // broken export not fixed
-        x.replace(
-            `module.exports.MemoryStore = MemoryStore;`,
-            `export { MemoryStore }`
-        )
-    )
-    // Fix "Promise" is a private symbol.
-    tryReplace(
-        project,
-        join(matrixRoot, 'client.js'),
-        x =>
-            `export const Promise_: typeof globalThis['Promise'] = globalThis.Promise; export type Promise_<T = any> = Promise<T>;` +
-            x
-                .replace(/module:client.Promise/g, 'Promise')
-                .replace(/Promise/g, 'Promise_')
-                // A required parameter cannot follow an optional parameter.
-                .replace(
-                    /@param {module:client.callback} callback Optional./g,
-                    `@param {module:client.callback} [callback] Optional.`
-                )
-                .replace(
-                    /@param {string\[\]} userIds/g,
-                    `@param {string[]} [userIds]`
-                )
-    )
     for (let sourceFile of project.getSourceFiles()) {
         const allBreakingExports: string[] = Array.from(
             // @ts-ignore
