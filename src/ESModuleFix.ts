@@ -1,4 +1,10 @@
-import { Project, ts, ImportDeclarationStructure, StructureKind } from 'ts-morph'
+import {
+    Project,
+    ts,
+    ImportDeclarationStructure,
+    StructureKind
+} from 'ts-morph'
+import { log } from './log'
 
 export function ESModuleFix(project: Project) {
     for (let sourceFile of project.getSourceFiles()) {
@@ -6,7 +12,11 @@ export function ESModuleFix(project: Project) {
         // collect all requires
         sourceFile = sourceFile.transform(traversal => {
             const node = traversal.visitChildren() // recommend always visiting the children first (post order)
-            if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'require') {
+            if (
+                ts.isCallExpression(node) &&
+                ts.isIdentifier(node.expression) &&
+                node.expression.text === 'require'
+            ) {
                 const importName = (node.arguments[0] as ts.Identifier).text
                 importedNames.push(importName)
                 return node
@@ -22,7 +32,11 @@ export function ESModuleFix(project: Project) {
         )
         sourceFile = sourceFile.transform(traversal => {
             const node = traversal.visitChildren() // recommend always visiting the children first (post order)
-            if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'require') {
+            if (
+                ts.isCallExpression(node) &&
+                ts.isIdentifier(node.expression) &&
+                node.expression.text === 'require'
+            ) {
                 const importName = (node.arguments[0] as ts.Identifier).text
                 const index = importedNames.indexOf(importName)
                 if (index === -1) {
@@ -33,7 +47,7 @@ export function ESModuleFix(project: Project) {
             }
             return node
         })
-        console.log('require in ESModule fixed', sourceFile.getFilePath())
+        log('require in ESModule fixed', sourceFile.getFilePath())
         function getGeneratedName(x: string, index: number) {
             return `$_generated_${index}`
         }

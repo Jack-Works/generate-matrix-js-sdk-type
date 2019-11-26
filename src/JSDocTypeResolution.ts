@@ -15,6 +15,7 @@ import {
 } from 'ts-morph'
 import jsdoc from 'doctrine'
 import { join } from 'path'
+import { log } from './log'
 
 /**
  * JSDoc Type Resolution:
@@ -25,22 +26,6 @@ import { join } from 'path'
  * Second step, run a transform on all files to transform JSDoc type to TS type.
  */
 export function JSDocTypeResolution(project: Project, matrixRoot: string) {
-    for (const x of project.getSourceFiles()) {
-        // const y = x.getText(true)
-        // if (y.includes('module:crypto/deviceinfo}')) {
-        //     x.replaceWithText(
-        //         y
-        //             .replace(
-        //                 /module:crypto\/deviceinfo}/g,
-        //                 'module:crypto/deviceinfo.DeviceInfo}'
-        //             )
-        //             .replace(
-        //                 /crypto\/verification\/Base}/g,
-        //                 'crypto/verification/Base.VerificationBase}'
-        //             )
-        //     )
-        // }
-    }
     project.addSourceFileAtPath(join(matrixRoot, 'crypto/store/base.js'))
     const moduleMap = resolveJSDocModules(project)
     function appendModuleAtPath(
@@ -62,7 +47,7 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
     appendModuleAtPath('http-api')
     appendModuleAtPath('models/event')
     for (let sourceFile of project.getSourceFiles()) {
-        console.log('Resolving JSDoc linking for ', sourceFile.getFilePath())
+        log('Resolving JSDoc linking for', sourceFile.getFilePath())
         const changeContext: JSDocReplaceContext = {
             appendESImports: new Map(),
             moduleMap: moduleMap,
@@ -148,11 +133,6 @@ function resolveJSDocModules(project: Project) {
                 })
                 for (const tag of parsed.tags) {
                     if (!tag.name) break
-                    console.log(
-                        `Map JSDoc module ${
-                            tag.name
-                        } to ${sourceFile.getFilePath()}`
-                    )
                     map.set(tag.name, sourceFile.getFilePath())
                 }
             }
@@ -217,7 +197,7 @@ function JSDocTagReplace(
         case jsdoc.Syntax.NullableLiteral:
         case jsdoc.Syntax.ParameterType:
             debugger
-            console.log(`Unhandled JSDoc Type ${nextType.type}`)
+            console.warn(`Unhandled JSDoc Type ${nextType.type}`)
             return [type, ctx]
         // Bypass type.
         case jsdoc.Syntax.NullLiteral: // null
@@ -228,7 +208,7 @@ function JSDocTagReplace(
         // High level type.
         // ..TypeExpression, used in @param {...restParamType}
         case jsdoc.Syntax.RestType: {
-            console.log(
+            console.warn(
                 'A RestType is used. TypeScript compiler cannot recognize this pattern.'
             )
             return [
@@ -307,8 +287,7 @@ function JSDocTagReplace(
             const n = nextType.name
             if (n === 'Function' || n === 'function')
                 nextType.name = '((...args: any) => any)'
-            else if (n === 'class')
-                nextType.name = 'any'
+            else if (n === 'class') nextType.name = 'any'
             else if (['int', 'float', 'Number', 'integer'].includes(n))
                 nextType.name = 'number'
             else if (['bool', 'Boolean', 'bolean'].includes(n))
@@ -345,7 +324,7 @@ function JSDocTagReplace(
                     }
                 }
                 if (!ctx.moduleMap.has(moduleName))
-                    console.log('Unresolved module', moduleName)
+                    console.warn('Unresolved module', moduleName)
                 else {
                     const imports =
                         ctx.appendESImports.get(moduleName) || new Set()

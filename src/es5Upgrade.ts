@@ -1,4 +1,5 @@
 import { Project, SourceFile } from 'ts-morph'
+import { log } from './log'
 
 const DIAG_UPGRADE_MODULE_TO_ES6 = 80001
 // This constructor function may be converted to a class declaration.
@@ -13,7 +14,10 @@ export function es5ClassUpgrade(project: Project) {
         let diagnostics = getDiag(fileName, sourceFile)
         let ignoreLastNDiagnostic = 0
         while (diagnostics.length - ignoreLastNDiagnostic > 0) {
-            const _ = diagnostics.slice(0, diagnostics.length - ignoreLastNDiagnostic)
+            const _ = diagnostics.slice(
+                0,
+                diagnostics.length - ignoreLastNDiagnostic
+            )
             const diag = _[_.length - 1]
             try {
                 const fixes = languageService.getCodeFixesAtPosition(
@@ -38,13 +42,13 @@ export function es5ClassUpgrade(project: Project) {
                     continue
                 }
                 if (diag.getCode() === DIAG_UPGRADE_CLASS_TO_ES6) {
-                    console.log('Class upgraded for ', fileName)
+                    log('Class upgraded for ', fileName)
                 } else if (diag.getCode() === DIAG_UPGRADE_MODULE_TO_ES6) {
-                    console.log('Module system upgraded for ', fileName)
+                    log('Module system upgraded for ', fileName)
                 }
                 diagnostics = getDiag(fileName, sourceFile)
             } catch (e) {
-                console.log(e)
+                console.error(e)
                 ignoreLastNDiagnostic += 1
             }
         }
