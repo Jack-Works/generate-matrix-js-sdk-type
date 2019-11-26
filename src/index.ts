@@ -38,6 +38,7 @@ const project = new Project({
 console.log('Using TypeScript version:', version)
 
 project.addSourceFilesAtPaths(join(matrixRoot, '**/*.js'))
+project.addSourceFileAtPath(join(matrixRoot, 'crypto/store/base.js'))
 
 preFix(project, matrixRoot)
 // all es import to cjs
@@ -49,7 +50,7 @@ ESModuleFix(project)
 JSDocTypeResolution(project, matrixRoot)
 afterFixes(project, matrixRoot)
 
-// project.save()
+project.save()
 console.log('Emitting .d.ts files')
 
 // const needEmit = false

@@ -1,5 +1,6 @@
 import { Project, SourceFile } from 'ts-morph'
 import { log } from './log'
+import { SourceFileReplacer } from './SourceFileReplacer'
 
 const DIAG_UPGRADE_MODULE_TO_ES6 = 80001
 // This constructor function may be converted to a class declaration.
@@ -52,6 +53,28 @@ export function es5ClassUpgrade(project: Project) {
                 ignoreLastNDiagnostic += 1
             }
         }
+        const r = new SourceFileReplacer(sourceFile)
+        const path = sourceFile.getFilePath()
+        if (path.endsWith('store/indexeddb-local-backend.js')) {
+            r.replace(x =>
+                x
+                    .replace(/    async\n +\/\*\*/, '/**')
+                    .replace(
+                        ` setOutOfBandMembers(roomId, membershipEvents) {`,
+                        'async setOutOfBandMembers(roomId, membershipEvents) {'
+                    )
+            )
+        } else if (path.endsWith('store/memory.js')) {
+            r.replace(x => x.slice(0, -15))
+        } else if (path.endsWith('crypto/algorithms/index.js')) {
+            r.replace(x =>
+                x.replace(
+                    /export const (.+) = .+;/g,
+                    'export { $1 } from "./base"'
+                )
+            )
+        }
+        r.apply()
     }
 
     function getDiag(fileName: string, sourceFile: SourceFile) {

@@ -8,6 +8,12 @@ import {
 import jsdoc from 'doctrine'
 import { join } from 'path'
 import { log } from './log'
+import { SourceFileReplacer } from './SourceFileReplacer'
+
+import * as babelParse from '@babel/parser'
+import babelTraverse from '@babel/traverse'
+import * as babelTypes from '@babel/types'
+import * as babelGenerator from '@babel/generator'
 
 /**
  * JSDoc Type Resolution:
@@ -18,7 +24,6 @@ import { log } from './log'
  * Second step, run a transform on all files to transform JSDoc type to TS type.
  */
 export function JSDocTypeResolution(project: Project, matrixRoot: string) {
-    project.addSourceFileAtPath(join(matrixRoot, 'crypto/store/base.js'))
     const moduleMap = resolveJSDocModules(project)
     function appendModuleAtPath(
         moduleName: string,
@@ -36,77 +41,133 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
     appendModuleAtPath('crypto/algorithms/base')
     appendModuleAtPath('crypto/verification/Base')
     appendModuleAtPath('http-api')
+    appendModuleAtPath('base-apis')
     appendModuleAtPath('models/event')
-    for (let sourceFile of project.getSourceFiles()) {
-        log('Resolving JSDoc linking for', sourceFile.getFilePath())
+
+    const symbolCache = new Map<
+        string,
+        readonly [Symbol[], Symbol | undefined]
+    >()
+    function getExportsOfPath(target: string) {
+        if (symbolCache.has(target)) return symbolCache.get(target)!
+        const targetSourceFile = project.getSourceFileOrThrow(target)
+        const exports = targetSourceFile.getExportSymbols()
+        const defaultExport = targetSourceFile.getDefaultExportSymbol()
+        const result = [exports, defaultExport] as const
+        symbolCache.set(target, result)
+        return result
+    }
+
+    for (const _ of project
+        .getSourceFiles()
+        .map(x => new SourceFileReplacer(x))) {
+        const newLocal = _.sourceFile.getFilePath()
+        log('Resolving JSDoc linking for', newLocal)
         const changeContext: JSDocReplaceContext = {
             appendESImports: new Map(),
             moduleMap: moduleMap,
             project: project,
             matrixRoot: matrixRoot
         }
-        let length = sourceFile.getStatementsWithComments().length
-        while (length >= 1) {
-            // change the Statements from reverse order
-            let withComment = sourceFile.getStatementsWithComments()[length - 1]
-            const comments = withComment
-                .getLeadingCommentRanges()
-                .map(node => [node, node.getText()] as const)
-            for (const [, jsDoc] of comments) {
-                const change = transformJSDocComment(jsDoc, changeContext)
-                if (!change) continue
-                const { nextComment } = change
-                const origText = withComment.getText(false)
-                withComment.replaceWithText(`/**
- ${nextComment.replace(/^/gm, ' * ')}
-*/
-${origText}`)
-                withComment = sourceFile.getStatementsWithComments()[length - 1]
-            }
-            length--
-        }
-
-        sourceFile.addImportDeclarations(
-            Array.from(changeContext.appendESImports).map<
-                ImportDeclarationStructure
-            >(([path, bindingNames]) => {
-                const target = moduleMap.get(path)!
-                const targetSourceFile = project.getSourceFileOrThrow(target)
-                const exports = targetSourceFile.getExportSymbols()
-                const defaultExports = targetSourceFile.getDefaultExportSymbol()
-                let defaultImport: undefined | string = undefined
-                const namedImports: ImportSpecifierStructure[] = []
-                for (const binding of bindingNames) {
-                    if (!binding) {
-                        console.warn('Invalid binding name')
-                        continue
-                    }
-                    const relatedSymbol = exports.find(
-                        x => x.getName() === binding
+        let sourceText = _.sourceFile.getText()
+        try {
+            const ast = babelParse.parse(sourceText, {
+                sourceType: 'module',
+                plugins: ['classProperties']
+            })
+            babelTraverse(ast, {
+                enter(path) {
+                    const comments = path.node.leadingComments
+                    if (!comments) return
+                    babelTypes.removeComments(path.node)
+                    babelTypes.addComments(
+                        path.node,
+                        'leading',
+                        comments
+                            .map(x => {
+                                if (x.type === 'CommentLine') return x
+                                const next = transformJSDocComment(
+                                    x.value,
+                                    changeContext
+                                )?.nextComment
+                                if (!next) return undefined as any
+                                return {
+                                    type: 'CommentBlock',
+                                    value:
+                                        '*\n * ' +
+                                        next.replace(/\n/g, '\n * ') +
+                                        '\n '
+                                } as typeof x
+                            })
+                            .filter(x => x)
                     )
-                    if (relatedSymbol) {
-                        namedImports.push({
-                            name: binding,
-                            kind: StructureKind.ImportSpecifier
-                        })
-                    } else {
-                        if (defaultExports) {
-                            const bindingName = getDefaultExportDeclaration(
-                                defaultExports
-                            )
-                            if (bindingName) defaultImport = binding
-                            else console.warn('Unresolved import ', binding)
-                        } else console.warn('Unresolved import ', binding)
-                    }
-                }
-                return {
-                    moduleSpecifier: target,
-                    kind: StructureKind.ImportDeclaration,
-                    defaultImport: defaultImport,
-                    namedImports: namedImports
                 }
             })
-        )
+            const result = babelGenerator.default(ast, { comments: true }).code
+            _.replace(() => result)
+
+            _.touchSourceFile(
+                sourceFile =>
+                    void sourceFile.addImportDeclarations(
+                        Array.from(changeContext.appendESImports).map<
+                            ImportDeclarationStructure
+                        >(([path, bindingNames]) => {
+                            const target = moduleMap.get(path)!
+                            const [exports, defaultExport] = getExportsOfPath(
+                                target
+                            )
+                            let defaultImport: undefined | string = undefined
+                            const namedImports: ImportSpecifierStructure[] = []
+                            for (const binding of bindingNames) {
+                                if (!binding) {
+                                    console.warn(
+                                        'Invalid binding name at',
+                                        target
+                                    )
+                                    continue
+                                }
+                                const relatedSymbol = exports.find(
+                                    x => x.getName() === binding
+                                )
+                                if (relatedSymbol) {
+                                    namedImports.push({
+                                        name: binding,
+                                        kind: StructureKind.ImportSpecifier
+                                    })
+                                } else {
+                                    if (defaultExport) {
+                                        const bindingName = getDefaultExportDeclaration(
+                                            defaultExport
+                                        )
+                                        if (bindingName) defaultImport = binding
+                                        else
+                                            console.warn(
+                                                'Unresolved import ',
+                                                binding
+                                            )
+                                    } else
+                                        console.warn(
+                                            'Unresolved import ',
+                                            binding
+                                        )
+                                }
+                            }
+                            return {
+                                moduleSpecifier: target,
+                                kind: StructureKind.ImportDeclaration,
+                                defaultImport: defaultImport,
+                                namedImports: namedImports
+                            }
+                        })
+                    )
+            )
+            _.apply()
+            // this file is touched so the cache is invalid now.
+            symbolCache.delete(_.sourceFile.getFilePath())
+        } catch (e) {
+            console.log(sourceText)
+            throw e
+        }
     }
 }
 
@@ -330,7 +391,6 @@ function JSDocTagReplace(
             return [type, ctx]
         }
         default: {
-            const neverTypeCheck: never = nextType
             console.error('Unhandled type')
             return [type, ctx]
         }

@@ -6,7 +6,7 @@ export function tryReplace(
 ) {
     try {
         const file = project.getSourceFileOrThrow(path)
-        let text = file.getText(true)
+        let text = file.getFullText()
         text = replacer(text)
         file.replaceWithText(x => x.write(text))
     } catch {}

@@ -4,24 +4,29 @@ export class SourceFileReplacer {
     get currentSource() {
         return this.source
     }
-    private source = this.sourceFile.getText(true)
+    private source = this.sourceFile.getFullText()
     /**
      * Use this function to modify the sourceFile
      */
     touchSourceFile(x: (sf: SourceFile) => void | SourceFile) {
         this.apply()
         this.sourceFile = x(this.sourceFile) || this.sourceFile
-        this.source = this.sourceFile.getText(true)
+        this.source = this.sourceFile.getFullText()
     }
     /**
      * Do replace the SourceFile
      */
     apply() {
-        if (this.sourceFile.getText(true) === this.source)
+        if (this.sourceFile.getFullText() === this.source)
             return this.sourceFile
         return (this.sourceFile = this.sourceFile.replaceWithText(
             this.source
         ) as SourceFile)
+    }
+    debugApply() {
+        this.apply()
+        this.sourceFile.saveSync()
+        process.exit(0)
     }
     /**
      * Schedule a full replace
@@ -33,7 +38,7 @@ export class SourceFileReplacer {
         this.source =
             this.source.substring(0, start) +
             replaceWith +
-            this.source.substring(start + length, this.source.length)
+            this.source.substring(start + length)
     }
     applyTextChanges(
         args: readonly Parameters<SourceFileReplacer['applyTextChange']>[]

@@ -5,6 +5,12 @@
     "license": "MIT",
     "private": true,
     "dependencies": {
+        "@babel/generator": "^7.7.4",
+        "@babel/parser": "^7.7.4",
+        "@babel/traverse": "^7.7.4",
+        "@babel/types": "^7.7.4",
+        "@types/babel__generator": "^7.6.0",
+        "@types/babel__traverse": "^7.0.8",
         "@types/doctrine": "^0.0.3",
         "@types/node": "^12.12.9",
         "doctrine": "^3.0.0",

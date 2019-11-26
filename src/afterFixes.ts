@@ -15,17 +15,10 @@ import { join } from 'path'
  */
 const pattern = /export \{ _(.+?) as (.+?) \}/g
 export function afterFixes(project: Project, matrixRoot: string) {
-    tryReplace(project, join(matrixRoot, 'http-api.js'), x =>
-        // A required parameter cannot follow an optional parameter.
-        x.replace(
-            /@param {Object} data The HTTP JSON body./g,
-            `@param {Object} [data] The HTTP JSON body.`
-        )
-    )
     for (let sourceFile of project.getSourceFiles()) {
         const allBreakingExports: string[] = Array.from(
             // @ts-ignore
-            sourceFile.getText().matchAll(pattern) as string[]
+            sourceFile.getFullText().matchAll(pattern) as string[]
         ).map(x => x[1])
         allBreakingExports
             .map(
@@ -41,7 +34,7 @@ export function afterFixes(project: Project, matrixRoot: string) {
         tryReplace(project, sourceFile.getFilePath(), x =>
             x
                 // JSDoc style type reference
-                .replace(/{\?module:.+?}/g, `{any}`)
+                .replace(/{\??module:.+?}/g, `{any}`)
                 .replace(pattern, '')
         )
     }

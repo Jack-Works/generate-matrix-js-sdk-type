@@ -1,10 +1,8 @@
 import { Project, TypeGuards, ts } from 'ts-morph'
-import { join } from 'path'
 import { SourceFileReplacer } from './SourceFileReplacer'
 import { log } from './log'
 
 export function preFix(project: Project, matrixRoot: string) {
-    project.addSourceFileAtPath(join(matrixRoot, 'crypto/store/base.js'))
     for (const _ of project
         .getSourceFiles()
         .map(x => new SourceFileReplacer(x))) {
@@ -26,6 +24,13 @@ export function preFix(project: Project, matrixRoot: string) {
                     .replace(`MemoryStore.prototype = \{`, '// ')
             )
         } else if (path.endsWith('http-api.js')) {
+            _.replace(x =>
+                // A required parameter cannot follow an optional parameter.
+                x.replace(
+                    /@param {Object} data The HTTP JSON body./g,
+                    `@param {Object} [data] The HTTP JSON body.`
+                )
+            )
             fixModuleExportsPrototype(_, 'MatrixHttpApi')
             _.touchSourceFile(x => {
                 const MatrixError = x
@@ -54,7 +59,7 @@ export function preFix(project: Project, matrixRoot: string) {
                 MatrixError[2].remove()
                 MatrixError[1].remove()
                 MatrixError[0].replaceWithText(x =>
-                    x.write(`class MatrixError extends Error {
+                    x.write(`module.exports.MatrixError = class MatrixError extends Error {
             constructor(${params}) {
                 super()
                 ${body.getText()}
@@ -85,16 +90,29 @@ export function preFix(project: Project, matrixRoot: string) {
             )
         } else if (path.endsWith('client.js')) {
             _.replace(x =>
-                x.replace(
-                    '  * @typedef {Object} Promise',
-                    '  * @typedef {Object} PromiseDeprecated'
-                )
+                x
+                    .replace(
+                        '  * @typedef {Object} Promise',
+                        '  * @typedef {Object} PromiseDeprecated'
+                    )
+                    .replace(
+                        /@param {module:client.callback} callback Optional./g,
+                        `@param {module:client.callback} [callback] Optional.`
+                    )
+                    .replace(
+                        /@param {string\[\]} userIds/g,
+                        `@param {string[]} [userIds]`
+                    )
             )
         }
 
         _.replace(x =>
             x
                 .replace(/crypto-deviceinfo/g, 'crypto/deviceinfo')
+                .replace(
+                    /module:event-timeline/g,
+                    'module:models/event-timeline'
+                )
                 .replace(/bolean/g, 'boolean')
                 .replace(/sring/g, 'string')
                 .replace(/module:client\.Promise/g, 'Promise')
