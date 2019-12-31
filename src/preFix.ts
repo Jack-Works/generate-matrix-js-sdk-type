@@ -106,6 +106,7 @@ export function preFix(project: Project, matrixRoot: string) {
             )
         }
 
+        // fix typos
         _.replace(x =>
             x
                 .replace(/crypto-deviceinfo/g, 'crypto/deviceinfo')

@@ -24,11 +24,13 @@ export function ESModuleFix(project: Project) {
             return node
         })
         sourceFile.addImportDeclarations(
-            importedNames.map<ImportDeclarationStructure>((x, index) => ({
-                namespaceImport: getGeneratedName(x, index),
-                moduleSpecifier: x,
-                kind: StructureKind.ImportDeclaration
-            }))
+            importedNames.map<ImportDeclarationStructure>((x, index) => {
+                return {
+                    namespaceImport: getGeneratedName(x, index),
+                    moduleSpecifier: x,
+                    kind: StructureKind.ImportDeclaration
+                }
+            })
         )
         sourceFile = sourceFile.transform(traversal => {
             const node = traversal.visitChildren() // recommend always visiting the children first (post order)

@@ -1,7 +1,12 @@
 import { join } from 'path'
 import { es5ClassUpgrade as es5Upgrade } from './es5Upgrade'
 import { consistentModule } from './consistentModule'
-import { CompilerOptions, IndentationText, ScriptTarget } from 'ts-morph'
+import {
+    CompilerOptions,
+    IndentationText,
+    ScriptTarget,
+    ModuleResolutionKind
+} from 'ts-morph'
 import { Project } from 'ts-morph'
 import { version } from 'typescript/built/local/typescript'
 // @ts-ignore
@@ -10,6 +15,7 @@ import { ESModuleFix } from './ESModuleFix'
 import { afterFixes } from './afterFixes'
 import { JSDocTypeResolution } from './JSDocTypeResolution'
 import { preFix } from './preFix'
+import { dtsFixes } from './dtsFixes'
 
 const matrixRoot = join(__dirname, '../../matrix-js-sdk/src/')
 const dtsRoot = join(__dirname, '../../matrix-js-sdk-type/dts')
@@ -25,7 +31,8 @@ const compilerOptions: CompilerOptions = {
     emitDeclarationOnly: true,
     esModuleInterop: true,
     allowSyntheticDefaultImports: true,
-    target: ScriptTarget.ESNext
+    target: ScriptTarget.ESNext,
+    moduleResolution: ModuleResolutionKind.NodeJs
 }
 
 rimraf.sync(dtsRoot)
@@ -50,7 +57,7 @@ ESModuleFix(project)
 JSDocTypeResolution(project, matrixRoot)
 afterFixes(project, matrixRoot)
 
-project.save()
+// project.save()
 console.log('Emitting .d.ts files')
 
 // const needEmit = false
@@ -62,4 +69,5 @@ needEmit &&
             console.log('Warning! Emit skipped')
         }
         console.log('.d.ts emitted')
+        dtsFixes(dtsRoot)
     }, console.error)

@@ -13,6 +13,7 @@ export function es5ClassUpgrade(project: Project) {
         if (fileName.endsWith('.d.ts')) continue
 
         let diagnostics = getDiag(fileName, sourceFile)
+        // some diagnostics fixes may have no effect even throw so we should prevent a dead loop
         let ignoreLastNDiagnostic = 0
         while (diagnostics.length - ignoreLastNDiagnostic > 0) {
             const _ = diagnostics.slice(
