@@ -109,56 +109,65 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
             _.touchSourceFile(
                 sourceFile =>
                     void sourceFile.addImportDeclarations(
-                        Array.from(changeContext.appendESImports).map<
-                            ImportDeclarationStructure
-                        >(([path, bindingNames]) => {
-                            const target = moduleMap.get(path)!
-                            const [exports, defaultExport] = getExportsOfPath(
-                                target
-                            )
-                            let defaultImport: undefined | string = undefined
-                            const namedImports: ImportSpecifierStructure[] = []
-                            for (const binding of bindingNames) {
-                                if (!binding) {
-                                    console.warn(
-                                        'Invalid binding name at',
-                                        target
-                                    )
-                                    continue
-                                }
-                                const relatedSymbol = exports.find(
-                                    x => x.getName() === binding
-                                )
-                                if (relatedSymbol) {
-                                    namedImports.push({
-                                        name: binding,
-                                        kind: StructureKind.ImportSpecifier
-                                    })
-                                } else {
-                                    if (defaultExport) {
-                                        const bindingName = getDefaultExportDeclaration(
-                                            defaultExport
-                                        )
-                                        if (bindingName) defaultImport = binding
-                                        else
+                        Array.from(changeContext.appendESImports)
+                            .map<ImportDeclarationStructure>(
+                                ([path, bindingNames]) => {
+                                    const target = moduleMap.get(path)!
+                                    const [
+                                        exports,
+                                        defaultExport
+                                    ] = getExportsOfPath(target)
+                                    let defaultImport:
+                                        | undefined
+                                        | string = undefined
+                                    const namedImports: ImportSpecifierStructure[] = []
+                                    for (const binding of bindingNames) {
+                                        if (!binding) {
                                             console.warn(
-                                                'Unresolved import ',
-                                                binding
+                                                'Invalid binding name at',
+                                                target
                                             )
-                                    } else
-                                        console.warn(
-                                            'Unresolved import ',
-                                            binding
+                                            continue
+                                        }
+                                        const relatedSymbol = exports.find(
+                                            x => x.getName() === binding
                                         )
+                                        if (relatedSymbol) {
+                                            namedImports.push({
+                                                name: binding,
+                                                kind:
+                                                    StructureKind.ImportSpecifier
+                                            })
+                                        } else {
+                                            if (defaultExport) {
+                                                const bindingName = getDefaultExportDeclaration(
+                                                    defaultExport
+                                                )
+                                                if (bindingName)
+                                                    defaultImport = binding
+                                                else
+                                                    console.warn(
+                                                        'Unresolved import ',
+                                                        binding
+                                                    )
+                                            } else
+                                                console.warn(
+                                                    'Unresolved import ',
+                                                    binding
+                                                )
+                                        }
+                                    }
+                                    if (target === sourceFile.getFilePath())
+                                        return null!
+                                    return {
+                                        moduleSpecifier: target,
+                                        kind: StructureKind.ImportDeclaration,
+                                        defaultImport: defaultImport,
+                                        namedImports: namedImports
+                                    }
                                 }
-                            }
-                            return {
-                                moduleSpecifier: target,
-                                kind: StructureKind.ImportDeclaration,
-                                defaultImport: defaultImport,
-                                namedImports: namedImports
-                            }
-                        })
+                            )
+                            .filter(x => x)
                     )
             )
             _.apply()
