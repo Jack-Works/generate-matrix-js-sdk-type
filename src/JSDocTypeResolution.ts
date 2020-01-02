@@ -205,9 +205,7 @@ function resolveJSDocModules(project: Project) {
 function transformJSDocComment(
     comment: string,
     replaceContext: JSDocReplaceContext
-): {
-    nextComment: string
-} | null {
+): { nextComment: string } | null {
     const parsed = jsdoc.parse(comment, {
         recoverable: true,
         sloppy: true,
@@ -396,6 +394,7 @@ function JSDocTagReplace(
             return [nextType, ctx]
         }
         case jsdoc.Syntax.FunctionType: {
+            console.warn('TODO: Transform to TypeScript type')
             // TODO: Transform to TypeScript type
             return [type, ctx]
         }

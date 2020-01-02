@@ -117,6 +117,12 @@ export function preFix(project: Project, matrixRoot: string) {
                 .replace(/bolean/g, 'boolean')
                 .replace(/sring/g, 'string')
                 .replace(/module:client\.Promise/g, 'Promise')
+                // {Object.<string, function(new: module:modulePath.ExportPath)>}
+                // => {Record.<string, module:modulePath.ExportPath)>}
+                .replace(
+                    /Object..string. function.new: module:(.+)\)./g,
+                    `Record<string, module:$1>`
+                )
         )
         _.apply()
     }
