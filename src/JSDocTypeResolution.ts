@@ -91,6 +91,7 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
                                 let defaultImport: undefined | string = undefined
                                 const namedImports: ImportSpecifierStructure[] = []
                                 for (const binding of bindingNames) {
+                                    if (sourceFile.getLocal(binding)?.getDeclarations().length ?? 0 > 0) continue
                                     if (!binding) {
                                         console.warn('Invalid binding name at', target)
                                         continue
