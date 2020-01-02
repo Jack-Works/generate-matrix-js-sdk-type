@@ -159,19 +159,37 @@ function transformJSDocComment(comment: string, replaceContext: JSDocReplaceCont
         unwrap: true
     })
     if (parsed.tags.length === 0) return null
+
+    const usedRecordInParam = new Set<string>()
+    let parsedTags = parsed.tags.map<jsdoc.Tag>(tag => ({ ...tag, type: map(replaceContext)(tag.type) }))
+    // ? collect all props
+    for (const tag of parsedTags) {
+        if (!tag.name?.includes('.')) continue
+        const [obj] = tag.name.split('.')
+        usedRecordInParam.add(obj)
+    }
+
+    for (const each of usedRecordInParam) {
+        if (parsedTags.find(x => x.name === each)) continue
+        const usageIndex = parsedTags.findIndex(x => x.name?.startsWith(each))
+        const usage = parsedTags[usageIndex]
+        if (usage?.title === 'alias') continue
+        parsedTags.splice(usageIndex, 0, {
+            description: '__auto_generated__',
+            title: usage?.title || 'param',
+            kind: usage?.kind,
+            name: each,
+            type: jsdoc.parseType('Object')
+        })
+    }
+
     const targetTag =
         parsed.description +
         '\n' +
-        parsed.tags
-            .map(tag => {
-                return {
-                    ...tag,
-                    type: map(replaceContext)(tag.type)
-                }
-            })
+        parsedTags
             .map(x => {
-                return `@${x.title} ${x.type ? '{' + jsdoc.type.stringify(x.type) + '}' : ''} ${x.name ??
-                    ''} ${x.description ?? ''}`
+                const type = x.type && jsdoc.type.stringify(x.type)
+                return `@${x.title} ${type ? '{' + type + '}' : ''} ${x.name ?? ''} ${x.description ?? ''}`
             })
             .join('\n')
     return {
@@ -240,7 +258,7 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
                 ctx
             ]
         }
-        // { a, b } object literal typex
+        // { a, b } object literal type
         case jsdoc.Syntax.RecordType: {
             return [
                 {

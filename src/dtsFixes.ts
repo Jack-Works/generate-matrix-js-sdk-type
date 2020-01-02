@@ -9,18 +9,6 @@ export function dtsFixes(dtsRoot: string) {
     dtsProject.addSourceFilesAtPaths(join(dtsRoot, '**/*.d.ts'))
     for (const each of dtsProject.getSourceFiles().map(x => new SourceFileReplacer(x))) {
         const path = each.sourceFile.getFilePath()
-        if (path.endsWith('client.d.ts')) {
-            each.replace(x =>
-                /**
-                 * Original bad output: prepareKeyBackupVersion(password: string, { secureSecretStorage }: boolean)
-                 */
-                x.replace(
-                    /prepareKeyBackupVersion\(password: string, .+\): Promise/g,
-                    'prepareKeyBackupVersion(password: string, opts?: { secureSecretStorage: boolean }): Promise'
-                )
-            )
-            each.apply()
-        }
         each.touchSourceFile(s => {
             /**
              * Fix import { EventEmitter } from 'node_modules/@types/node/events'
