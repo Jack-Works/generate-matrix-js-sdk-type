@@ -1,12 +1,7 @@
 import { join } from 'path'
 import { es5ClassUpgrade as es5Upgrade } from './es5Upgrade'
 import { consistentModule } from './consistentModule'
-import {
-    CompilerOptions,
-    IndentationText,
-    ScriptTarget,
-    ModuleResolutionKind
-} from 'ts-morph'
+import { CompilerOptions, IndentationText, ScriptTarget, ModuleResolutionKind } from 'ts-morph'
 import { Project } from 'ts-morph'
 import { version } from 'typescript/built/local/typescript'
 // @ts-ignore

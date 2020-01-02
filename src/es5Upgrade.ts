@@ -16,10 +16,7 @@ export function es5ClassUpgrade(project: Project) {
         // some diagnostics fixes may have no effect even throw so we should prevent a dead loop
         let ignoreLastNDiagnostic = 0
         while (diagnostics.length - ignoreLastNDiagnostic > 0) {
-            const _ = diagnostics.slice(
-                0,
-                diagnostics.length - ignoreLastNDiagnostic
-            )
+            const _ = diagnostics.slice(0, diagnostics.length - ignoreLastNDiagnostic)
             const diag = _[_.length - 1]
             try {
                 const fixes = languageService.getCodeFixesAtPosition(
@@ -68,12 +65,7 @@ export function es5ClassUpgrade(project: Project) {
         } else if (path.endsWith('store/memory.js')) {
             r.replace(x => x.slice(0, -15))
         } else if (path.endsWith('crypto/algorithms/index.js')) {
-            r.replace(x =>
-                x.replace(
-                    /export const (.+) = .+;/g,
-                    'export { $1 } from "./base"'
-                )
-            )
+            r.replace(x => x.replace(/export const (.+) = .+;/g, 'export { $1 } from "./base"'))
         }
         r.apply()
     }

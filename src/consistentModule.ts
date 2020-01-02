@@ -3,10 +3,7 @@ import { log } from './log'
 
 export function consistentModule(project: Project) {
     for (const sourceFile of project.getSourceFiles()) {
-        log(
-            'Fix the mix use of ESModule and CommonJS for',
-            sourceFile.getFilePath()
-        )
+        log('Fix the mix use of ESModule and CommonJS for', sourceFile.getFilePath())
         for (const importDeclaration of sourceFile.getImportDeclarations()) {
             // import n
             const defaultImport = importDeclaration.getDefaultImport()
@@ -18,20 +15,15 @@ export function consistentModule(project: Project) {
             if (moduleSpecifier === 'bluebird') importDeclaration.remove()
             else if (defaultImport || nsImport)
                 importDeclaration.replaceWithText(
-                    `const ${(defaultImport ||
-                        nsImport)!.getText()} = require("${moduleSpecifier}");`
+                    `const ${(defaultImport || nsImport)!.getText()} = require("${moduleSpecifier}");`
                 )
             else if (namedImports) {
                 const namedImportsCJSStyle = namedImports
                     .map(x => [x.getName(), x.getAliasNode()?.getText()])
                     .map(([x, y]) => (y ? `${x}: ${y}` : x))
-                importDeclaration.replaceWithText(
-                    `const {${namedImportsCJSStyle}} = require("${moduleSpecifier}");`
-                )
+                importDeclaration.replaceWithText(`const {${namedImportsCJSStyle}} = require("${moduleSpecifier}");`)
             } else {
-                importDeclaration.replaceWithText(
-                    `require("${moduleSpecifier}");`
-                )
+                importDeclaration.replaceWithText(`require("${moduleSpecifier}");`)
             }
         }
     }

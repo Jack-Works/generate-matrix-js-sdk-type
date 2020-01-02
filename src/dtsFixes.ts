@@ -7,9 +7,7 @@ export function dtsFixes(dtsRoot: string) {
         compilerOptions: {}
     })
     dtsProject.addSourceFilesAtPaths(join(dtsRoot, '**/*.d.ts'))
-    for (const each of dtsProject
-        .getSourceFiles()
-        .map(x => new SourceFileReplacer(x))) {
+    for (const each of dtsProject.getSourceFiles().map(x => new SourceFileReplacer(x))) {
         const path = each.sourceFile.getFilePath()
         if (path.endsWith('client.d.ts')) {
             each.replace(x =>
@@ -29,11 +27,7 @@ export function dtsFixes(dtsRoot: string) {
              */
             const i = s
                 .getImportDeclarations()
-                .filter(x =>
-                    x
-                        .getModuleSpecifierValue()
-                        .endsWith('node_modules/@types/node/events')
-                )
+                .filter(x => x.getModuleSpecifierValue().endsWith('node_modules/@types/node/events'))
             i.forEach(x => x.setModuleSpecifier('events'))
             // Fix: https://github.com/microsoft/TypeScript/issues/35932
             removeExtraMethods(s)

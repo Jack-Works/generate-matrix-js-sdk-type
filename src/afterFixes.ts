@@ -21,12 +21,7 @@ export function afterFixes(project: Project, matrixRoot: string) {
             sourceFile.getFullText().matchAll(pattern) as string[]
         ).map(x => x[1])
         allBreakingExports
-            .map(
-                x =>
-                    sourceFile.getClass(x) ||
-                    sourceFile.getFunction(x) ||
-                    sourceFile.getVariableStatement(x)
-            )
+            .map(x => sourceFile.getClass(x) || sourceFile.getFunction(x) || sourceFile.getVariableStatement(x))
             .forEach(x => {
                 if (!x) return
                 x.replaceWithText('export ' + x.getText(true))

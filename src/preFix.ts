@@ -3,9 +3,7 @@ import { SourceFileReplacer } from './SourceFileReplacer'
 import { log } from './log'
 
 export function preFix(project: Project, matrixRoot: string) {
-    for (const _ of project
-        .getSourceFiles()
-        .map(x => new SourceFileReplacer(x))) {
+    for (const _ of project.getSourceFiles().map(x => new SourceFileReplacer(x))) {
         const path = _.sourceFile.getFilePath()
         log(`Run prefix for: ${path}`)
 
@@ -13,10 +11,7 @@ export function preFix(project: Project, matrixRoot: string) {
             fixModuleExportsPrototype(_, 'MemoryStore')
             _.replace(x =>
                 x
-                    .replace(
-                        /(.+): function\(/g,
-                        'MemoryStore.prototype.$1 = function('
-                    )
+                    .replace(/(.+): function\(/g, 'MemoryStore.prototype.$1 = function(')
                     .replace(/^    \},$/gm, '}')
                     .split('\n')
                     .slice(0, -2)
@@ -26,30 +21,17 @@ export function preFix(project: Project, matrixRoot: string) {
         } else if (path.endsWith('http-api.js')) {
             _.replace(x =>
                 // A required parameter cannot follow an optional parameter.
-                x.replace(
-                    /@param {Object} data The HTTP JSON body./g,
-                    `@param {Object} [data] The HTTP JSON body.`
-                )
+                x.replace(/@param {Object} data The HTTP JSON body./g, `@param {Object} [data] The HTTP JSON body.`)
             )
             fixModuleExportsPrototype(_, 'MatrixHttpApi')
             _.touchSourceFile(x => {
                 const MatrixError = x
                     .getStatements()
                     .filter(TypeGuards.isExpressionStatement)
-                    .filter(
-                        x =>
-                            x.getText().includes('MatrixError') &&
-                            x.getText().startsWith('module.exports')
-                    )
+                    .filter(x => x.getText().includes('MatrixError') && x.getText().startsWith('module.exports'))
                 const f = MatrixError[0]
-                    .getChildAtIndexIfKindOrThrow(
-                        1,
-                        ts.SyntaxKind.BinaryExpression
-                    )
-                    .getChildAtIndexIfKindOrThrow(
-                        2,
-                        ts.SyntaxKind.FunctionExpression
-                    )
+                    .getChildAtIndexIfKindOrThrow(1, ts.SyntaxKind.BinaryExpression)
+                    .getChildAtIndexIfKindOrThrow(2, ts.SyntaxKind.FunctionExpression)
 
                 const params = f
                     .getParameters()
@@ -91,18 +73,12 @@ export function preFix(project: Project, matrixRoot: string) {
         } else if (path.endsWith('client.js')) {
             _.replace(x =>
                 x
-                    .replace(
-                        '  * @typedef {Object} Promise',
-                        '  * @typedef {Object} PromiseDeprecated'
-                    )
+                    .replace('  * @typedef {Object} Promise', '  * @typedef {Object} PromiseDeprecated')
                     .replace(
                         /@param {module:client.callback} callback Optional./g,
                         `@param {module:client.callback} [callback] Optional.`
                     )
-                    .replace(
-                        /@param {string\[\]} userIds/g,
-                        `@param {string[]} [userIds]`
-                    )
+                    .replace(/@param {string\[\]} userIds/g, `@param {string[]} [userIds]`)
             )
         }
 
@@ -110,19 +86,13 @@ export function preFix(project: Project, matrixRoot: string) {
         _.replace(x =>
             x
                 .replace(/crypto-deviceinfo/g, 'crypto/deviceinfo')
-                .replace(
-                    /module:event-timeline/g,
-                    'module:models/event-timeline'
-                )
+                .replace(/module:event-timeline/g, 'module:models/event-timeline')
                 .replace(/bolean/g, 'boolean')
                 .replace(/sring/g, 'string')
                 .replace(/module:client\.Promise/g, 'Promise')
                 // {Object.<string, function(new: module:modulePath.ExportPath)>}
                 // => {Record.<string, module:modulePath.ExportPath)>}
-                .replace(
-                    /Object..string. function.new: module:(.+)\)./g,
-                    `Record<string, module:$1>`
-                )
+                .replace(/Object..string. function.new: module:(.+)\)./g, `Record<string, module:$1>`)
         )
         _.apply()
     }
@@ -131,10 +101,7 @@ export function preFix(project: Project, matrixRoot: string) {
 /**
  * Fix this pattern `module.exports.Name.prototype = {}`
  */
-function fixModuleExportsPrototype(
-    replacer: SourceFileReplacer,
-    className: string
-) {
+function fixModuleExportsPrototype(replacer: SourceFileReplacer, className: string) {
     console.log(
         `Fix module.exports.${className}.prototype= pattern which will crash tsc\n` +
             'see https://github.com/microsoft/TypeScript/issues/35228'

@@ -1,10 +1,4 @@
-import {
-    Project,
-    ImportDeclarationStructure,
-    StructureKind,
-    ImportSpecifierStructure,
-    Symbol
-} from 'ts-morph'
+import { Project, ImportDeclarationStructure, StructureKind, ImportSpecifierStructure, Symbol } from 'ts-morph'
 import jsdoc from 'doctrine'
 import { join } from 'path'
 import { log } from './log'
@@ -25,16 +19,8 @@ import * as babelGenerator from '@babel/generator'
  */
 export function JSDocTypeResolution(project: Project, matrixRoot: string) {
     const moduleMap = resolveJSDocModules(project)
-    function appendModuleAtPath(
-        moduleName: string,
-        filePath = moduleName + '.js'
-    ) {
-        moduleMap.set(
-            moduleName,
-            project
-                .getSourceFileOrThrow(join(matrixRoot, filePath))
-                .getFilePath()
-        )
+    function appendModuleAtPath(moduleName: string, filePath = moduleName + '.js') {
+        moduleMap.set(moduleName, project.getSourceFileOrThrow(join(matrixRoot, filePath)).getFilePath())
     }
     appendModuleAtPath('crypto/store/base')
     appendModuleAtPath('crypto/OlmDevice')
@@ -44,10 +30,7 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
     appendModuleAtPath('base-apis')
     appendModuleAtPath('models/event')
 
-    const symbolCache = new Map<
-        string,
-        readonly [Symbol[], Symbol | undefined]
-    >()
+    const symbolCache = new Map<string, readonly [Symbol[], Symbol | undefined]>()
     function getExportsOfPath(target: string) {
         if (symbolCache.has(target)) return symbolCache.get(target)!
         const targetSourceFile = project.getSourceFileOrThrow(target)
@@ -58,9 +41,7 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
         return result
     }
 
-    for (const _ of project
-        .getSourceFiles()
-        .map(x => new SourceFileReplacer(x))) {
+    for (const _ of project.getSourceFiles().map(x => new SourceFileReplacer(x))) {
         const newLocal = _.sourceFile.getFilePath()
         log('Resolving JSDoc linking for', newLocal)
         const changeContext: JSDocReplaceContext = {
@@ -86,17 +67,11 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
                         comments
                             .map(x => {
                                 if (x.type === 'CommentLine') return x
-                                const next = transformJSDocComment(
-                                    x.value,
-                                    changeContext
-                                )?.nextComment
+                                const next = transformJSDocComment(x.value, changeContext)?.nextComment
                                 if (!next) return undefined as any
                                 return {
                                     type: 'CommentBlock',
-                                    value:
-                                        '*\n * ' +
-                                        next.replace(/\n/g, '\n * ') +
-                                        '\n '
+                                    value: '*\n * ' + next.replace(/\n/g, '\n * ') + '\n '
                                 } as typeof x
                             })
                             .filter(x => x)
@@ -110,63 +85,38 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
                 sourceFile =>
                     void sourceFile.addImportDeclarations(
                         Array.from(changeContext.appendESImports)
-                            .map<ImportDeclarationStructure>(
-                                ([path, bindingNames]) => {
-                                    const target = moduleMap.get(path)!
-                                    const [
-                                        exports,
-                                        defaultExport
-                                    ] = getExportsOfPath(target)
-                                    let defaultImport:
-                                        | undefined
-                                        | string = undefined
-                                    const namedImports: ImportSpecifierStructure[] = []
-                                    for (const binding of bindingNames) {
-                                        if (!binding) {
-                                            console.warn(
-                                                'Invalid binding name at',
-                                                target
-                                            )
-                                            continue
-                                        }
-                                        const relatedSymbol = exports.find(
-                                            x => x.getName() === binding
-                                        )
-                                        if (relatedSymbol) {
-                                            namedImports.push({
-                                                name: binding,
-                                                kind:
-                                                    StructureKind.ImportSpecifier
-                                            })
-                                        } else {
-                                            if (defaultExport) {
-                                                const bindingName = getDefaultExportDeclaration(
-                                                    defaultExport
-                                                )
-                                                if (bindingName)
-                                                    defaultImport = binding
-                                                else
-                                                    console.warn(
-                                                        'Unresolved import ',
-                                                        binding
-                                                    )
-                                            } else
-                                                console.warn(
-                                                    'Unresolved import ',
-                                                    binding
-                                                )
-                                        }
+                            .map<ImportDeclarationStructure>(([path, bindingNames]) => {
+                                const target = moduleMap.get(path)!
+                                const [exports, defaultExport] = getExportsOfPath(target)
+                                let defaultImport: undefined | string = undefined
+                                const namedImports: ImportSpecifierStructure[] = []
+                                for (const binding of bindingNames) {
+                                    if (!binding) {
+                                        console.warn('Invalid binding name at', target)
+                                        continue
                                     }
-                                    if (target === sourceFile.getFilePath())
-                                        return null!
-                                    return {
-                                        moduleSpecifier: target,
-                                        kind: StructureKind.ImportDeclaration,
-                                        defaultImport: defaultImport,
-                                        namedImports: namedImports
+                                    const relatedSymbol = exports.find(x => x.getName() === binding)
+                                    if (relatedSymbol) {
+                                        namedImports.push({
+                                            name: binding,
+                                            kind: StructureKind.ImportSpecifier
+                                        })
+                                    } else {
+                                        if (defaultExport) {
+                                            const bindingName = getDefaultExportDeclaration(defaultExport)
+                                            if (bindingName) defaultImport = binding
+                                            else console.warn('Unresolved import ', binding)
+                                        } else console.warn('Unresolved import ', binding)
                                     }
                                 }
-                            )
+                                if (target === sourceFile.getFilePath()) return null!
+                                return {
+                                    moduleSpecifier: target,
+                                    kind: StructureKind.ImportDeclaration,
+                                    defaultImport: defaultImport,
+                                    namedImports: namedImports
+                                }
+                            })
                             .filter(x => x)
                     )
             )
@@ -202,10 +152,7 @@ function resolveJSDocModules(project: Project) {
     return map
 }
 
-function transformJSDocComment(
-    comment: string,
-    replaceContext: JSDocReplaceContext
-): { nextComment: string } | null {
+function transformJSDocComment(comment: string, replaceContext: JSDocReplaceContext): { nextComment: string } | null {
     const parsed = jsdoc.parse(comment, {
         recoverable: true,
         sloppy: true,
@@ -223,9 +170,8 @@ function transformJSDocComment(
                 }
             })
             .map(x => {
-                return `@${x.title} ${
-                    x.type ? '{' + jsdoc.type.stringify(x.type) + '}' : ''
-                } ${x.name ?? ''} ${x.description ?? ''}`
+                return `@${x.title} ${x.type ? '{' + jsdoc.type.stringify(x.type) + '}' : ''} ${x.name ??
+                    ''} ${x.description ?? ''}`
             })
             .join('\n')
     return {
@@ -245,10 +191,7 @@ interface JSDocReplaceContext {
     project: Project
     matrixRoot: string
 }
-function JSDocTagReplace(
-    type: jsdoc.Type,
-    ctx: JSDocReplaceContext
-): [jsdoc.Type, JSDocReplaceContext] {
+function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Type, JSDocReplaceContext] {
     let nextType = clone(type)
     if (!nextType?.type) return [type, ctx]
     switch (nextType.type) {
@@ -267,9 +210,7 @@ function JSDocTagReplace(
         // High level type.
         // ..TypeExpression, used in @param {...restParamType}
         case jsdoc.Syntax.RestType: {
-            console.warn(
-                'A RestType is used. TypeScript compiler cannot recognize this pattern.'
-            )
+            console.warn('A RestType is used. TypeScript compiler cannot recognize this pattern.')
             return [
                 {
                     ...nextType,
@@ -314,9 +255,7 @@ function JSDocTagReplace(
             return [
                 {
                     ...nextType,
-                    applications: nextType.applications.map(
-                        y => JSDocTagReplace(y, ctx)[0]
-                    ),
+                    applications: nextType.applications.map(y => JSDocTagReplace(y, ctx)[0]),
                     expression: JSDocTagReplace(nextType.expression, ctx)[0]
                 } as jsdoc.type.TypeApplication,
                 ctx
@@ -326,9 +265,7 @@ function JSDocTagReplace(
         case jsdoc.Syntax.NullableType:
         // Optional=
         case jsdoc.Syntax.OptionalType: {
-            const falsy:
-                | jsdoc.type.UndefinedLiteral
-                | jsdoc.type.NullLiteral = {
+            const falsy: jsdoc.type.UndefinedLiteral | jsdoc.type.NullLiteral = {
                 type:
                     nextType.type === jsdoc.type.Syntax.OptionalType
                         ? jsdoc.Syntax.UndefinedLiteral
@@ -344,48 +281,35 @@ function JSDocTagReplace(
         // Special handled type.
         case jsdoc.Syntax.NameExpression: {
             const n = nextType.name
-            if (n === 'Function' || n === 'function')
-                nextType.name = '((...args: any) => any)'
+            if (n === 'Function' || n === 'function') nextType.name = '((...args: any) => any)'
             else if (n === 'class') nextType.name = 'any'
-            else if (['int', 'float', 'Number', 'integer'].includes(n))
-                nextType.name = 'number'
+            else if (['int', 'float', 'Number', 'integer'].includes(n)) nextType.name = 'number'
             else if (['bool', 'Boolean'].includes(n)) nextType.name = 'boolean'
             else if (n === 'Object') nextType.name = 'object'
             else if (n === 'String') nextType.name = 'string'
             else if (n === 'array') nextType.name = 'Array'
-            else if (n === 'Promise' || n === 'promise')
-                nextType.name = 'Promise'
+            else if (n === 'Promise' || n === 'promise') nextType.name = 'Promise'
             else if (n.startsWith('module:')) {
                 const [moduleName, ...importBindings] = n
                     .replace('module:', '')
                     .replace(/~/g, '.')
                     .split('.')
-                if (importBindings.length > 1)
-                    console.warn(
-                        'Unexpected dot in exportBinding',
-                        importBindings.join('.')
-                    )
+                if (importBindings.length > 1) console.warn('Unexpected dot in exportBinding', importBindings.join('.'))
                 else if (importBindings.length === 0) {
                     const path = ctx.moduleMap.get(moduleName)
                     if (path) {
-                        const sourceFile = ctx.project.getSourceFileOrThrow(
-                            path
-                        )
+                        const sourceFile = ctx.project.getSourceFileOrThrow(path)
                         const defExp = sourceFile.getDefaultExportSymbol()
 
                         if (defExp) {
-                            const bindingName = getDefaultExportDeclaration(
-                                defExp
-                            )
+                            const bindingName = getDefaultExportDeclaration(defExp)
                             if (bindingName) importBindings.push(bindingName)
                         }
                     }
                 }
-                if (!ctx.moduleMap.has(moduleName))
-                    console.warn('Unresolved module', moduleName)
+                if (!ctx.moduleMap.has(moduleName)) console.warn('Unresolved module', moduleName)
                 else {
-                    const imports =
-                        ctx.appendESImports.get(moduleName) || new Set()
+                    const imports = ctx.appendESImports.get(moduleName) || new Set()
                     imports.add(importBindings.join('.'))
                     ctx.appendESImports.set(moduleName, imports)
                 }
@@ -409,8 +333,7 @@ function clone<T>(x: T): T {
     return JSON.parse(JSON.stringify(x))
 }
 function map(ctx: JSDocReplaceContext) {
-    return <T extends jsdoc.Type | undefined | null>(x: T) =>
-        x ? (JSDocTagReplace(x!, ctx)[0] as T) : (x as T)
+    return <T extends jsdoc.Type | undefined | null>(x: T) => (x ? (JSDocTagReplace(x!, ctx)[0] as T) : (x as T))
 }
 function getDefaultExportDeclaration(x: Symbol): string | undefined {
     const zeroDecl = x?.getDeclarations()?.[0]

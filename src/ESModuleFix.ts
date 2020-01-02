@@ -1,9 +1,4 @@
-import {
-    Project,
-    ts,
-    ImportDeclarationStructure,
-    StructureKind
-} from 'ts-morph'
+import { Project, ts, ImportDeclarationStructure, StructureKind } from 'ts-morph'
 import { log } from './log'
 
 export function ESModuleFix(project: Project) {
@@ -12,11 +7,7 @@ export function ESModuleFix(project: Project) {
         // collect all requires
         sourceFile = sourceFile.transform(traversal => {
             const node = traversal.visitChildren() // recommend always visiting the children first (post order)
-            if (
-                ts.isCallExpression(node) &&
-                ts.isIdentifier(node.expression) &&
-                node.expression.text === 'require'
-            ) {
+            if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'require') {
                 const importName = (node.arguments[0] as ts.Identifier).text
                 importedNames.push(importName)
                 return node
@@ -34,11 +25,7 @@ export function ESModuleFix(project: Project) {
         )
         sourceFile = sourceFile.transform(traversal => {
             const node = traversal.visitChildren() // recommend always visiting the children first (post order)
-            if (
-                ts.isCallExpression(node) &&
-                ts.isIdentifier(node.expression) &&
-                node.expression.text === 'require'
-            ) {
+            if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'require') {
                 const importName = (node.arguments[0] as ts.Identifier).text
                 const index = importedNames.indexOf(importName)
                 if (index === -1) {
