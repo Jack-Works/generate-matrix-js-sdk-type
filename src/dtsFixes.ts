@@ -31,7 +31,6 @@ export function dtsFixes(dtsRoot: string) {
 function removeExtraMethods(sourceFile: SourceFile) {
     const c = sourceFile.getClasses()
     for (const class_ of c) {
-        const super_ = class_.getExtends()
         for (const each of eventEmitterMethods) {
             class_.getMethod(each)?.remove()
         }

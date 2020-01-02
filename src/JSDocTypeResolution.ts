@@ -125,7 +125,7 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
             // this file is touched so the cache is invalid now.
             symbolCache.delete(_.sourceFile.getFilePath())
         } catch (e) {
-            console.log(sourceText)
+            console.debug(sourceText)
             throw e
         }
     }
@@ -337,7 +337,6 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
             return [nextType, ctx]
         }
         case jsdoc.Syntax.FunctionType: {
-            console.warn('TODO: Transform to TypeScript type')
             // TODO: Transform to TypeScript type
             return [type, ctx]
         }

@@ -102,7 +102,7 @@ export function preFix(project: Project, matrixRoot: string) {
  * Fix this pattern `module.exports.Name.prototype = {}`
  */
 function fixModuleExportsPrototype(replacer: SourceFileReplacer, className: string) {
-    console.log(
+    log(
         `Fix module.exports.${className}.prototype= pattern which will crash tsc\n` +
             'see https://github.com/microsoft/TypeScript/issues/35228'
     )

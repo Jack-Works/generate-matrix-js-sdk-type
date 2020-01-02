@@ -49,19 +49,19 @@ es5Upgrade(project)
 // all cjs to es import
 ESModuleFix(project)
 JSDocTypeResolution(project, matrixRoot)
-afterFixes(project, matrixRoot)
+// afterFixes(project)
 
 // project.save()
-console.log('Emitting .d.ts files')
 
 // const needEmit = false
 // dtsFixes(dtsRoot)
 const needEmit = true
 needEmit &&
+    (console.log('Emitting .d.ts files'), true) &&
     project.emit({ emitOnlyDtsFiles: true }).then(x => {
         project.formatDiagnosticsWithColorAndContext(x.getDiagnostics())
         if (x.getEmitSkipped()) {
-            console.log('Warning! Emit skipped')
+            console.log('Warning! Emit skipped! You may want to attach a debugger to figure out why.')
         }
         console.log('.d.ts emitted')
         dtsFixes(dtsRoot)

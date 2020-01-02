@@ -14,7 +14,7 @@ import { join } from 'path'
  * An explicit type annotation may unblock declaration emit.
  */
 const pattern = /export \{ _(.+?) as (.+?) \}/g
-export function afterFixes(project: Project, matrixRoot: string) {
+export function afterFixes(project: Project) {
     for (let sourceFile of project.getSourceFiles()) {
         const allBreakingExports: string[] = Array.from(
             // @ts-ignore
