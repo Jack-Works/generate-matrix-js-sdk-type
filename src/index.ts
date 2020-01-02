@@ -26,7 +26,6 @@ const compilerOptions: CompilerOptions = {
     declaration: true,
     declarationDir: dtsRoot,
     sourceRoot: sourceRoot,
-    declarationMap: true,
     composite: true,
     emitDeclarationOnly: true,
     esModuleInterop: true,
