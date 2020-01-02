@@ -60,6 +60,7 @@ afterFixes(project, matrixRoot)
 console.log('Emitting .d.ts files')
 
 // const needEmit = false
+// dtsFixes(dtsRoot)
 const needEmit = true
 needEmit &&
     project.emit({ emitOnlyDtsFiles: true }).then(x => {
