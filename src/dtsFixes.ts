@@ -30,6 +30,10 @@ export function dtsFixes(dtsRoot: string) {
                 .join('\n')
                 .replace(/import \* as (.+)deviceinfo/, 'import $1deviceinfo')
                 .replace(/import \* as (.+)VerificationRequest/, 'import $1VerificationRequest')
+                .replace(
+                    'export class MatrixClient ',
+                    'import {EventEmitter} from "events";\nexport class MatrixClient extends EventEmitter '
+                )
         })
         each.apply()
     }

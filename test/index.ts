@@ -4,12 +4,11 @@ const client = sdk.createClient({
     accessToken: '....MDAxM2lkZW50aWZpZXIga2V5CjAwMTBjaWQgZ2Vu....',
     userId: '@USERID:matrix.org'
 })
-
 client.login('m.login.password', { user: 'USERID', password: 'hunter2' }).then(response => {
     console.log(response.access_token)
 })
 console.log(client.getAccessToken())
-client.startClient()
+client.startClient({})
 client.once('sync', function(state, prevState, res) {
     console.log(state) // state will be 'PREPARED' when the client is ready to use
 })
@@ -36,36 +35,39 @@ rooms.forEach(room => {
         console.log(JSON.stringify(t.event.content))
     })
 })
-var testRoomId = "!jhpZBTbckszblMYjMK:matrix.org";
+var testRoomId = '!jhpZBTbckszblMYjMK:matrix.org'
 
 var content = {
-    "body": "Hello World",
-    "msgtype": "m.text"
-};
-
-client.sendEvent(testRoomId, "m.room.message", content, "").then((res) => {
-   // message sent successfully
-}).catch((err) => {
-    console.log(err);
+    body: 'Hello World',
+    msgtype: 'm.text'
 }
-client.on("Room.timeline", function(event, room, toStartOfTimeline) {
+
+client
+    .sendEvent(testRoomId, 'm.room.message', content, '')
+    .then(res => {
+        // message sent successfully
+    })
+    .catch(err => {
+        console.log(err)
+    })
+client.on('Room.timeline', function(event, room, toStartOfTimeline) {
     // we know we only want to respond to messages
-    if (event.getType() !== "m.room.message") {
-        return;
+    if (event.getType() !== 'm.room.message') {
+        return
     }
 
     // we are only intested in messages from the test room, which start with "!"
     if (event.getRoomId() === testRoomId && event.getContent().body[0] === '!') {
-        sendNotice(event.event.content.body);
+        sendNotice(event.event.content.body)
     }
-});
+})
 
 function sendNotice(body) {
     var content = {
-        "body": body.substring(1),
-        "msgtype": "m.notice"
-    };
-    client.sendEvent(testRoomId, "m.room.message", content, "", (err, res) => {
-        console.log(err);
-    });
+        body: body.substring(1),
+        msgtype: 'm.notice'
+    }
+    client.sendEvent(testRoomId, 'm.room.message', content, '', (err, res) => {
+        console.log(err)
+    })
 }
