@@ -20,6 +20,18 @@ export function dtsFixes(dtsRoot: string) {
             // Fix: https://github.com/microsoft/TypeScript/issues/35932
             removeExtraMethods(s)
         })
+        each.replace(sf => {
+            return sf
+                .split('\n')
+                .map(x => {
+                    if (x.startsWith('export const')) return x
+                    return x.replace(/typeof /g, '')
+                })
+                .join('\n')
+                .replace(/import \* as (.+)deviceinfo/, 'import $1deviceinfo')
+                .replace(/import \* as (.+)VerificationRequest/, 'import $1VerificationRequest')
+        })
+        each.apply()
     }
     dtsProject.saveSync()
 }

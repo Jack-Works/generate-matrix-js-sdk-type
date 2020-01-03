@@ -49,7 +49,7 @@ es5Upgrade(project)
 // all cjs to es import
 ESModuleFix(project)
 JSDocTypeResolution(project, matrixRoot)
-// afterFixes(project)
+afterFixes(project)
 
 // project.save()
 
