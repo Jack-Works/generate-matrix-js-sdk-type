@@ -1,3 +1,5 @@
+- Maybe you need @types/matrix-js-sdk (https://github.com/matrix-org/matrix-js-sdk/issues/983#issuecomment-593534506)
+
 # Generate-matrix-js-sdk-type
 
 Current hash of matrix-js-sdk: fe2bdd027ed65232545115a6a1d445ea6838df4e
