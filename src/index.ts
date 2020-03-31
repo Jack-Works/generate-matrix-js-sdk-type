@@ -23,6 +23,7 @@ const compilerOptions: CompilerOptions = {
     emitDeclarationOnly: true,
     esModuleInterop: true,
     allowSyntheticDefaultImports: true,
+    strict: true,
     target: ScriptTarget.ESNext,
     moduleResolution: ModuleResolutionKind.NodeJs
 }
@@ -45,7 +46,7 @@ es5Upgrade(project)
 JSDocTypeResolution(project, matrixRoot)
 afterFixes(project)
 
-project.save()
+// project.save()
 
 // const needEmit = false
 // dtsFixes(dtsRoot)

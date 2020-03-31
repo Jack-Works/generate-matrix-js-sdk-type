@@ -1,13 +1,16 @@
-import { Project, ImportDeclarationStructure, StructureKind, ImportSpecifierStructure, Symbol } from 'ts-morph'
+import {
+    Project,
+    ImportDeclarationStructure,
+    StructureKind,
+    ImportSpecifierStructure,
+    Symbol,
+    ts,
+    Node
+} from 'ts-morph'
 import jsdoc from 'doctrine'
 import { join } from 'path'
 import { log } from './log'
 import { SourceFileReplacer } from './SourceFileReplacer'
-
-import * as babelParse from '@babel/parser'
-import babelTraverse from '@babel/traverse'
-import * as babelTypes from '@babel/types'
-import * as babelGenerator from '@babel/generator'
 
 /**
  * JSDoc Type Resolution:
@@ -42,49 +45,40 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
     }
 
     for (const _ of project.getSourceFiles().map(x => new SourceFileReplacer(x))) {
-        const newLocal = _.sourceFile.getFilePath()
-        log('Resolving JSDoc linking for', newLocal)
-        const changeContext: JSDocReplaceContext = {
+        const fileName = _.sourceFile.getFilePath()
+        log('Resolving JSDoc linking for', fileName)
+        const jsdocReplaceContext: JSDocReplaceContext = {
             appendESImports: new Map(),
             moduleMap: moduleMap,
             project: project,
             matrixRoot: matrixRoot
         }
+        if (fileName.includes('call')) debugger
+        _.touchSourceFile(function access(_: Node<ts.Node>) {
+            const replaceMap = new Map<string, string>()
+            _.getLeadingCommentRanges().forEach(x => {
+                const comment = x.getText()
+                if (comment.startsWith('// ')) return
+                const next = transformJSDocComment(comment, jsdocReplaceContext)?.nextComment
+                if (next) replaceMap.set(comment, '/**\n  * ' + next.replace(/\n/g, '\n  * ') + '\n  */ ')
+            })
+            if (replaceMap.size) {
+                let source = _.getText(true)
+                for (const [orig, next] of replaceMap) {
+                    source = source.replace(orig, next)
+                }
+                _.replaceWithText(source)
+            }
+            try {
+                _.getChildren().forEach(access)
+            } catch {}
+        })
         let sourceText = _.sourceFile.getText()
         try {
-            const ast = babelParse.parse(sourceText, {
-                sourceType: 'module',
-                plugins: ['classProperties']
-            })
-            babelTraverse(ast, {
-                enter(path) {
-                    const comments = path.node.leadingComments
-                    if (!comments) return
-                    babelTypes.removeComments(path.node)
-                    babelTypes.addComments(
-                        path.node,
-                        'leading',
-                        comments
-                            .map(x => {
-                                if (x.type === 'CommentLine') return x
-                                const next = transformJSDocComment(x.value, changeContext)?.nextComment
-                                if (!next) return undefined as any
-                                return {
-                                    type: 'CommentBlock',
-                                    value: '*\n * ' + next.replace(/\n/g, '\n * ') + '\n '
-                                } as typeof x
-                            })
-                            .filter(x => x)
-                    )
-                }
-            })
-            const result = babelGenerator.default(ast, { comments: true }).code
-            _.replace(() => result)
-
             _.touchSourceFile(
                 sourceFile =>
                     void sourceFile.addImportDeclarations(
-                        Array.from(changeContext.appendESImports)
+                        Array.from(jsdocReplaceContext.appendESImports)
                             .map<ImportDeclarationStructure>(([path, bindingNames]) => {
                                 const target = moduleMap.get(path)!
                                 const [exports, defaultExport] = getExportsOfPath(target)
@@ -190,7 +184,11 @@ function transformJSDocComment(comment: string, replaceContext: JSDocReplaceCont
         parsedTags
             .map(x => {
                 const type = x.type && jsdoc.type.stringify(x.type)
-                return `@${x.title} ${type ? '{' + type + '}' : ''} ${x.name ?? ''} ${x.description ?? ''}`
+                const title = x.title
+                const typeExpr = type ? '{' + type + '}' : ''
+                const name = x.name
+                const desc = x.description ?? ''
+                return '@' + [title, typeExpr, name, desc].filter(x => x).join(' ')
             })
             .join('\n')
     return {
@@ -217,7 +215,6 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
         case jsdoc.Syntax.NonNullableType:
         case jsdoc.Syntax.NullableLiteral:
         case jsdoc.Syntax.ParameterType:
-            debugger
             console.warn(`Unhandled JSDoc Type ${nextType.type}`)
             return [type, ctx]
         // Bypass type.
@@ -284,30 +281,21 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
         case jsdoc.Syntax.NullableType:
         // Optional=
         case jsdoc.Syntax.OptionalType: {
-            const falsy: jsdoc.type.UndefinedLiteral | jsdoc.type.NullLiteral = {
-                type:
-                    nextType.type === jsdoc.type.Syntax.OptionalType
-                        ? jsdoc.Syntax.UndefinedLiteral
-                        : jsdoc.Syntax.NullLiteral
-            }
-            nextType.type === 'OptionalType'
-            nextType = {
-                type: jsdoc.Syntax.UnionType,
-                elements: [map(ctx)(nextType.expression), falsy]
-            } as jsdoc.type.UnionType
+            nextType.type = nextType.type
+            nextType.expression = map(ctx)(nextType.expression)
             return [nextType, ctx]
         }
         // Special handled type.
         case jsdoc.Syntax.NameExpression: {
             const n = nextType.name
-            if (n === 'Function' || n === 'function') nextType.name = '((...args: any) => any)'
-            else if (n === 'class') nextType.name = 'any'
+            // if (n === 'Function' || n === 'function') nextType.name = '((...args: any) => any)'
+            if (n === 'class') nextType.name = 'any'
             else if (['int', 'float', 'Number', 'integer'].includes(n)) nextType.name = 'number'
-            else if (['bool', 'Boolean'].includes(n)) nextType.name = 'boolean'
+            else if (['bool'].includes(n)) nextType.name = 'boolean'
             else if (n === 'Object') nextType.name = 'object'
             else if (n === 'String') nextType.name = 'string'
             else if (n === 'array') nextType.name = 'Array'
-            else if (n === 'Promise' || n === 'promise') nextType.name = 'Promise'
+            else if (n === 'promise') nextType.name = 'Promise'
             else if (n.startsWith('module:')) {
                 const [moduleName, ...importBindings] = n
                     .replace('module:', '')

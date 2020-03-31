@@ -10,6 +10,10 @@ export function es5ClassUpgrade(project: Project) {
     for (let sourceFile of project.getSourceFiles()) {
         const fileName = sourceFile.getFilePath()
         if (fileName.endsWith('.d.ts')) continue
+        if (!sourceFile.getText().includes('prototype')) {
+            const has = ['pushprocessor', 'room', 'search-result'].some(x => fileName.includes(x))
+            if (!has) continue
+        }
 
         let diagnostics = getDiag(fileName, sourceFile)
         // some diagnostics fixes may have no effect even throw so we should prevent a dead loop

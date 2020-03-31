@@ -43,13 +43,6 @@ MatrixError.prototype.constructor = MatrixError;`,
                     )
                     .replace(/@param {string\[\]} userIds/g, `@param {string[]} [userIds]`)
             )
-        } else if (path.endsWith('matrix.js')) {
-            _.replace(x =>
-                x.replace(
-                    'export const ContentHelpers = import("./content-helpers");',
-                    `export const ContentHelpers = {};`
-                )
-            )
         }
 
         _.replace(x =>
