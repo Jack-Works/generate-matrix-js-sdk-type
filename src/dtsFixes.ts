@@ -1,5 +1,5 @@
 import { join } from 'path'
-import { Project, ClassDeclaration, SourceFile } from 'ts-morph'
+import { Project, SourceFile } from 'ts-morph'
 import { SourceFileReplacer } from './SourceFileReplacer'
 
 export function dtsFixes(dtsRoot: string) {
@@ -8,7 +8,6 @@ export function dtsFixes(dtsRoot: string) {
     })
     dtsProject.addSourceFilesAtPaths(join(dtsRoot, '**/*.d.ts'))
     for (const each of dtsProject.getSourceFiles().map(x => new SourceFileReplacer(x))) {
-        const path = each.sourceFile.getFilePath()
         each.touchSourceFile(s => {
             /**
              * Fix import { EventEmitter } from 'node_modules/@types/node/events'

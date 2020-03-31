@@ -2,7 +2,6 @@ import { Project, SourceFile } from 'ts-morph'
 import { log } from './log'
 import { SourceFileReplacer } from './SourceFileReplacer'
 
-const DIAG_UPGRADE_MODULE_TO_ES6 = 80001
 // This constructor function may be converted to a class declaration.
 const DIAG_UPGRADE_CLASS_TO_ES6 = 80002
 export function es5ClassUpgrade(project: Project) {
@@ -42,8 +41,6 @@ export function es5ClassUpgrade(project: Project) {
                 }
                 if (diag.getCode() === DIAG_UPGRADE_CLASS_TO_ES6) {
                     log('Class upgraded for ', fileName)
-                } else if (diag.getCode() === DIAG_UPGRADE_MODULE_TO_ES6) {
-                    log('Module system upgraded for ', fileName)
                 }
                 diagnostics = getDiag(fileName, sourceFile)
             } catch (e) {
@@ -64,19 +61,12 @@ export function es5ClassUpgrade(project: Project) {
             )
         } else if (path.endsWith('store/memory.js')) {
             r.replace(x => x.slice(0, -15))
-        } else if (path.endsWith('crypto/algorithms/index.js')) {
-            r.replace(x => x.replace(/export const (.+) = .+;/g, 'export { $1 } from "./base"'))
         }
         r.apply()
     }
 
     function getDiag(fileName: string, sourceFile: SourceFile) {
         return languageService.getSuggestionDiagnostics(fileName).filter(x => {
-            if (x.getCode() === DIAG_UPGRADE_MODULE_TO_ES6) {
-                return true
-                // if (sourceFile.getExportDeclarations().length) return true
-                // return false
-            }
             return x.getCode() === DIAG_UPGRADE_CLASS_TO_ES6
         })
     }

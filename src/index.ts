@@ -1,12 +1,10 @@
 import { join } from 'path'
 import { es5ClassUpgrade as es5Upgrade } from './es5Upgrade'
-import { consistentModule } from './consistentModule'
 import { CompilerOptions, IndentationText, ScriptTarget, ModuleResolutionKind } from 'ts-morph'
 import { Project } from 'ts-morph'
-import { version } from 'typescript/built/local/typescript'
+import { version } from 'typescript'
 // @ts-ignore
 import rimraf from 'rimraf'
-import { ESModuleFix } from './ESModuleFix'
 import { afterFixes } from './afterFixes'
 import { JSDocTypeResolution } from './JSDocTypeResolution'
 import { preFix } from './preFix'
@@ -42,16 +40,12 @@ project.addSourceFilesAtPaths(join(matrixRoot, '**/*.js'))
 project.addSourceFileAtPath(join(matrixRoot, 'crypto/store/base.js'))
 
 preFix(project, matrixRoot)
-// all es import to cjs
-consistentModule(project)
-// upgrade class and module system to ES6
+// upgrade class to ES6
 es5Upgrade(project)
-// all cjs to es import
-ESModuleFix(project)
 JSDocTypeResolution(project, matrixRoot)
 afterFixes(project)
 
-// project.save()
+project.save()
 
 // const needEmit = false
 // dtsFixes(dtsRoot)
