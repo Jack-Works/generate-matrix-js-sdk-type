@@ -34,15 +34,6 @@ MatrixError.prototype.constructor = MatrixError;`,
                         '};'
                     )
             )
-        } else if (path.endsWith('client.js')) {
-            _.replace(x =>
-                x
-                    .replace(
-                        /@param {module:client.callback} callback Optional./g,
-                        `@param {module:client.callback} [callback] Optional.`
-                    )
-                    .replace(/@param {string\[\]} userIds/g, `@param {string[]} [userIds]`)
-            )
         }
 
         _.replace(x =>

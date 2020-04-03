@@ -53,7 +53,6 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
             project: project,
             matrixRoot: matrixRoot
         }
-        if (fileName.includes('call')) debugger
         _.touchSourceFile(function access(_: Node<ts.Node>) {
             const replaceMap = new Map<string, string>()
             _.getLeadingCommentRanges().forEach(x => {
@@ -71,7 +70,10 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
             }
             try {
                 _.getChildren().forEach(access)
-            } catch {}
+            } catch (e) {
+                if (e.message.includes('Debug Failure.')) {
+                } else throw e
+            }
         })
         let sourceText = _.sourceFile.getText()
         try {
@@ -156,7 +158,15 @@ function transformJSDocComment(comment: string, replaceContext: JSDocReplaceCont
     if (parsed.tags.length === 0) return null
 
     const usedRecordInParam = new Set<string>()
-    let parsedTags = parsed.tags.map<jsdoc.Tag>(tag => ({ ...tag, type: map(replaceContext)(tag.type) }))
+    let previouslyOptional = false
+    let parsedTags = parsed.tags
+        .map(x => {
+            if (x.title !== 'param') return x
+            if (x.description?.includes('A list of state events. This i')) debugger
+            convertToOptionalName(x)
+            return x
+        })
+        .map<jsdoc.Tag>(tag => ({ ...tag, type: map(replaceContext)(tag.type) }))
     // ? collect all props
     for (const tag of parsedTags) {
         if (!tag.name?.includes('.')) continue
@@ -177,7 +187,6 @@ function transformJSDocComment(comment: string, replaceContext: JSDocReplaceCont
             type: jsdoc.parseType('Object')
         })
     }
-
     const targetTag =
         parsed.description +
         '\n' +
@@ -191,6 +200,19 @@ function transformJSDocComment(comment: string, replaceContext: JSDocReplaceCont
                 return '@' + [title, typeExpr, name, desc].filter(x => x).join(' ')
             })
             .join('\n')
+    function convertToOptionalName(x: jsdoc.Tag) {
+        if (!x.name) return
+        const alreadyOpt = x.type?.type === jsdoc.type.Syntax.OptionalType
+        // It's a sub attribute like "opts.opt"
+        if (x.name.includes('.')) return
+        if (alreadyOpt) {
+            previouslyOptional = true
+            return
+        } else if (previouslyOptional) {
+            x.type = { type: 'OptionalType', expression: x.type } as jsdoc.type.OptionalType
+            return
+        }
+    }
     return {
         nextComment: targetTag
     }
@@ -213,7 +235,6 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
     if (!nextType?.type) return [type, ctx]
     switch (nextType.type) {
         case jsdoc.Syntax.NonNullableType:
-        case jsdoc.Syntax.NullableLiteral:
         case jsdoc.Syntax.ParameterType:
             console.warn(`Unhandled JSDoc Type ${nextType.type}`)
             return [type, ctx]
@@ -222,6 +243,7 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
         case jsdoc.Syntax.UndefinedLiteral: // undefined
         case jsdoc.Syntax.VoidLiteral: // void
         case jsdoc.Syntax.AllLiteral: // *, means any.
+        case jsdoc.Syntax.NullableLiteral: // ?
             return [type, ctx]
         // High level type.
         // ..TypeExpression, used in @param {...restParamType}

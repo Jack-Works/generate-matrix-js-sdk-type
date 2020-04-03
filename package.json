@@ -14,7 +14,7 @@
         "typescript": "^3.9.0-beta"
     },
     "scripts": {
-        "start": "ts-node -T ./src/index.js",
+        "start": "ts-node -T ./src/index.ts",
         "test": "tsc --project test",
         "debug": "node --inspect-brk -r ts-node/register ./src/index.ts"
     }
