@@ -20,19 +20,33 @@ export function dtsFixes(dtsRoot: string) {
             removeExtraMethods(s)
         })
         each.replace(sf => {
-            return sf
-                .split('\n')
-                .map(x => {
-                    if (x.startsWith('export const')) return x
-                    return x.replace(/typeof /g, '')
-                })
-                .join('\n')
-                .replace(/import \* as (.+)deviceinfo/, 'import $1deviceinfo')
-                .replace(/import \* as (.+)VerificationRequest/, 'import $1VerificationRequest')
-                .replace(
-                    'export class MatrixClient ',
-                    'import {EventEmitter} from "events";\nexport class MatrixClient extends EventEmitter '
-                )
+            return (
+                sf
+                    .split('\n')
+                    .map(x => {
+                        if (x.startsWith('export const')) return x
+                        return x.replace(/typeof /g, '')
+                    })
+                    .join('\n')
+                    .replace(/import \* as (.+)deviceinfo/, 'import $1deviceinfo')
+                    .replace(/import \* as (.+)VerificationRequest/, 'import $1VerificationRequest')
+                    .replace(
+                        'export class MatrixClient ',
+                        'import {EventEmitter} from "events";\nexport class MatrixClient extends EventEmitter '
+                    )
+                    // See: https://github.com/matrix-org/matrix-js-sdk/issues/1299
+                    .replace(
+                        `countEndToEndSessions(txn: any, func: any): void;`,
+                        `countEndToEndSessions(txn: any, func: any): number;`
+                    )
+                    // The original file has a SAS value import
+                    // Therefor the type import has been renamed to SAS_1
+                    // After the dts generation, the value import is gone therefore it's a type error.
+                    .replace(
+                        `import { SAS as SAS_1 } from "./verification/SAS";`,
+                        `import { SAS } from "./verification/SAS";`
+                    )
+            )
         })
         each.apply()
     }
