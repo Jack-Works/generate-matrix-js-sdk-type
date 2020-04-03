@@ -54,6 +54,7 @@ export function es5ClassUpgrade(project: Project) {
         }
         const r = new SourceFileReplacer(sourceFile)
         const path = sourceFile.getFilePath()
+        // https://github.com/microsoft/TypeScript/pull/35219
         if (path.endsWith('store/indexeddb-local-backend.js')) {
             r.replace(x =>
                 x
@@ -63,6 +64,7 @@ export function es5ClassUpgrade(project: Project) {
                         'async setOutOfBandMembers(roomId, membershipEvents) {'
                     )
             )
+            // https://github.com/microsoft/TypeScript/pull/35219
         } else if (path.endsWith('store/memory.js')) {
             r.replace(x => x.slice(0, -15))
         }

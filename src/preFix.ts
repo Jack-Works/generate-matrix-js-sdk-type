@@ -7,6 +7,7 @@ export function preFix(project: Project, matrixRoot: string) {
         const path = _.sourceFile.getFilePath()
         log(`Run prefix for: ${path}`)
 
+        // https://github.com/microsoft/TypeScript/pull/35219
         if (path.endsWith('store/memory.js')) {
             _.replace(x =>
                 x
@@ -18,6 +19,7 @@ export function preFix(project: Project, matrixRoot: string) {
                     .replace(`MemoryStore.prototype = \{`, '// ')
             )
         } else if (path.endsWith('http-api.js')) {
+            // https://github.com/matrix-org/matrix-js-sdk/pull/1181
             _.replace(x =>
                 x
                     .replace(

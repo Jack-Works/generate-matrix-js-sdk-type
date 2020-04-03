@@ -1,4 +1,4 @@
-const sdk = require('matrix-js-sdk') as typeof import('../../matrix-js-sdk-type/dts/matrix')
+const sdk = require('matrix-js-sdk') as typeof import('../../matrix-js-sdk-type')
 const client = sdk.createClient({
     baseUrl: 'https://matrix.org',
     accessToken: '....MDAxM2lkZW50aWZpZXIga2V5CjAwMTBjaWQgZ2Vu....',

@@ -51,7 +51,8 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
             appendESImports: new Map(),
             moduleMap: moduleMap,
             project: project,
-            matrixRoot: matrixRoot
+            matrixRoot: matrixRoot,
+            sourceFile: fileName
         }
         _.touchSourceFile(function access(_: Node<ts.Node>) {
             const replaceMap = new Map<string, string>()
@@ -89,7 +90,7 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
                                 for (const binding of bindingNames) {
                                     if (sourceFile.getLocal(binding)?.getDeclarations().length ?? 0 > 0) continue
                                     if (!binding) {
-                                        console.warn('Invalid binding name at', target)
+                                        console.warn(`Invalid binding name at "${target}"`)
                                         continue
                                     }
                                     const relatedSymbol = exports.find(x => x.getName() === binding)
@@ -99,11 +100,15 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
                                             kind: StructureKind.ImportSpecifier
                                         })
                                     } else {
+                                        const warn = () =>
+                                            console.warn(
+                                                `Unresolved import "${binding}" at file ${sourceFile.getFilePath()}`
+                                            )
                                         if (defaultExport) {
                                             const bindingName = getDefaultExportDeclaration(defaultExport)
                                             if (bindingName) defaultImport = binding
-                                            else console.warn('Unresolved import ', binding)
-                                        } else console.warn('Unresolved import ', binding)
+                                            else warn()
+                                        } else warn()
                                     }
                                 }
                                 if (target === sourceFile.getFilePath()) return null!
@@ -229,6 +234,7 @@ interface JSDocReplaceContext {
     moduleMap: ReadonlyMap<string, string>
     project: Project
     matrixRoot: string
+    sourceFile: string
 }
 function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Type, JSDocReplaceContext] {
     let nextType = clone(type)
@@ -323,7 +329,8 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
                     .replace('module:', '')
                     .replace(/~/g, '.')
                     .split('.')
-                if (importBindings.length > 1) console.warn('Unexpected dot in exportBinding', importBindings.join('.'))
+                if (importBindings.length > 1)
+                    console.warn(`Unexpected dot in exportBinding "${importBindings.join('.')}" in ${ctx.sourceFile}`)
                 else if (importBindings.length === 0) {
                     const path = ctx.moduleMap.get(moduleName)
                     if (path) {
@@ -336,7 +343,7 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
                         }
                     }
                 }
-                if (!ctx.moduleMap.has(moduleName)) console.warn('Unresolved module', moduleName)
+                if (!ctx.moduleMap.has(moduleName)) console.warn(`Unresolved module "${moduleName}"`)
                 else {
                     const imports = ctx.appendESImports.get(moduleName) || new Set()
                     imports.add(importBindings.join('.'))
