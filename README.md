@@ -7,3 +7,7 @@ Current hash of matrix-js-sdk: [1834e6688fc819e0d6d45306faa710b2db374997](https:
 ## How to use
 
 > ts-node -T src/index.ts
+
+## The generated result
+
+https://github.com/Jack-Works/matrix-js-sdk-type
