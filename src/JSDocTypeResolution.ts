@@ -5,7 +5,7 @@ import {
     ImportSpecifierStructure,
     Symbol,
     ts,
-    Node
+    Node,
 } from 'ts-morph'
 import jsdoc from 'doctrine'
 import { join } from 'path'
@@ -44,7 +44,7 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
         return result
     }
 
-    for (const _ of project.getSourceFiles().map(x => new SourceFileReplacer(x))) {
+    for (const _ of project.getSourceFiles().map((x) => new SourceFileReplacer(x))) {
         const fileName = _.sourceFile.getFilePath()
         log('Resolving JSDoc linking for', fileName)
         const jsdocReplaceContext: JSDocReplaceContext = {
@@ -52,11 +52,11 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
             moduleMap: moduleMap,
             project: project,
             matrixRoot: matrixRoot,
-            sourceFile: fileName
+            sourceFile: fileName,
         }
         _.touchSourceFile(function access(_: Node<ts.Node>) {
             const replaceMap = new Map<string, string>()
-            _.getLeadingCommentRanges().forEach(x => {
+            _.getLeadingCommentRanges().forEach((x) => {
                 const comment = x.getText()
                 if (comment.startsWith('// ')) return
                 const next = transformJSDocComment(comment, jsdocReplaceContext)?.nextComment
@@ -79,7 +79,7 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
         let sourceText = _.sourceFile.getText()
         try {
             _.touchSourceFile(
-                sourceFile =>
+                (sourceFile) =>
                     void sourceFile.addImportDeclarations(
                         Array.from(jsdocReplaceContext.appendESImports)
                             .map<ImportDeclarationStructure>(([path, bindingNames]) => {
@@ -93,11 +93,11 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
                                         console.warn(`Invalid binding name at "${target}"`)
                                         continue
                                     }
-                                    const relatedSymbol = exports.find(x => x.getName() === binding)
+                                    const relatedSymbol = exports.find((x) => x.getName() === binding)
                                     if (relatedSymbol) {
                                         namedImports.push({
                                             name: binding,
-                                            kind: StructureKind.ImportSpecifier
+                                            kind: StructureKind.ImportSpecifier,
                                         })
                                     } else {
                                         const warn = () =>
@@ -116,10 +116,10 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
                                     moduleSpecifier: target,
                                     kind: StructureKind.ImportDeclaration,
                                     defaultImport: defaultImport,
-                                    namedImports: namedImports
+                                    namedImports: namedImports,
                                 }
                             })
-                            .filter(x => x)
+                            .filter((x) => x)
                     )
             )
             _.apply()
@@ -142,7 +142,7 @@ function resolveJSDocModules(project: Project) {
             for (const each of nodeWithComment.getLeadingCommentRanges()) {
                 const parsed = jsdoc.parse(each.getText(), {
                     unwrap: true,
-                    tags: ['module']
+                    tags: ['module'],
                 })
                 for (const tag of parsed.tags) {
                     if (!tag.name) break
@@ -158,20 +158,20 @@ function transformJSDocComment(comment: string, replaceContext: JSDocReplaceCont
     const parsed = jsdoc.parse(comment, {
         recoverable: true,
         sloppy: true,
-        unwrap: true
+        unwrap: true,
     })
     if (parsed.tags.length === 0) return null
 
     const usedRecordInParam = new Set<string>()
     let previouslyOptional = false
     let parsedTags = parsed.tags
-        .map(x => {
+        .map((x) => {
             if (x.title !== 'param') return x
             if (x.description?.includes('A list of state events. This i')) debugger
             convertToOptionalName(x)
             return x
         })
-        .map<jsdoc.Tag>(tag => ({ ...tag, type: map(replaceContext)(tag.type) }))
+        .map<jsdoc.Tag>((tag) => ({ ...tag, type: map(replaceContext)(tag.type) }))
     // ? collect all props
     for (const tag of parsedTags) {
         if (!tag.name?.includes('.')) continue
@@ -180,8 +180,8 @@ function transformJSDocComment(comment: string, replaceContext: JSDocReplaceCont
     }
 
     for (const each of usedRecordInParam) {
-        if (parsedTags.find(x => x.name === each)) continue
-        const usageIndex = parsedTags.findIndex(x => x.name?.startsWith(each))
+        if (parsedTags.find((x) => x.name === each)) continue
+        const usageIndex = parsedTags.findIndex((x) => x.name?.startsWith(each))
         const usage = parsedTags[usageIndex]
         if (usage?.title === 'alias') continue
         parsedTags.splice(usageIndex, 0, {
@@ -189,20 +189,20 @@ function transformJSDocComment(comment: string, replaceContext: JSDocReplaceCont
             title: usage?.title || 'param',
             kind: usage?.kind,
             name: each,
-            type: jsdoc.parseType('Object')
+            type: jsdoc.parseType('Object'),
         })
     }
     const targetTag =
         parsed.description +
         '\n' +
         parsedTags
-            .map(x => {
+            .map((x) => {
                 const type = x.type && jsdoc.type.stringify(x.type)
                 const title = x.title
                 const typeExpr = type ? '{' + type + '}' : ''
                 const name = x.name
                 const desc = x.description ?? ''
-                return '@' + [title, typeExpr, name, desc].filter(x => x).join(' ')
+                return '@' + [title, typeExpr, name, desc].filter((x) => x).join(' ')
             })
             .join('\n')
     function convertToOptionalName(x: jsdoc.Tag) {
@@ -213,13 +213,13 @@ function transformJSDocComment(comment: string, replaceContext: JSDocReplaceCont
         if (alreadyOpt) {
             previouslyOptional = true
             return
-        } else if (previouslyOptional) {
+        } else if (previouslyOptional && x.type) {
             x.type = { type: 'OptionalType', expression: x.type } as jsdoc.type.OptionalType
             return
         }
     }
     return {
-        nextComment: targetTag
+        nextComment: targetTag,
     }
 }
 
@@ -258,9 +258,9 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
             return [
                 {
                     ...nextType,
-                    expression: map(ctx)(nextType.expression)
+                    expression: map(ctx)(nextType.expression),
                 } as jsdoc.type.RestType,
-                ctx
+                ctx,
             ]
         }
         // [A, B, C]
@@ -270,18 +270,18 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
             return [
                 {
                     ...nextType,
-                    elements: nextType.elements.map(map(ctx))
+                    elements: nextType.elements.map(map(ctx)),
                 } as jsdoc.type.UnionType | jsdoc.type.ArrayType,
-                ctx
+                ctx,
             ]
         }
         case jsdoc.Syntax.FieldType: {
             return [
                 {
                     ...nextType,
-                    value: map(ctx)(nextType.value)
+                    value: map(ctx)(nextType.value),
                 } as jsdoc.type.FieldType,
-                ctx
+                ctx,
             ]
         }
         // { a, b } object literal type
@@ -289,9 +289,9 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
             return [
                 {
                     ...nextType,
-                    fields: nextType.fields.map(x => JSDocTagReplace(x, ctx)[0])
+                    fields: nextType.fields.map((x) => JSDocTagReplace(x, ctx)[0]),
                 } as jsdoc.type.RecordType,
-                ctx
+                ctx,
             ]
         }
         // Type<applications>
@@ -299,10 +299,10 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
             return [
                 {
                     ...nextType,
-                    applications: nextType.applications.map(y => JSDocTagReplace(y, ctx)[0]),
-                    expression: JSDocTagReplace(nextType.expression, ctx)[0]
+                    applications: nextType.applications.map((y) => JSDocTagReplace(y, ctx)[0]),
+                    expression: JSDocTagReplace(nextType.expression, ctx)[0],
                 } as jsdoc.type.TypeApplication,
-                ctx
+                ctx,
             ]
         }
         // ?Nullable
@@ -316,8 +316,8 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
         // Special handled type.
         case jsdoc.Syntax.NameExpression: {
             const n = nextType.name
-            // if (n === 'Function' || n === 'function') nextType.name = '((...args: any) => any)'
-            if (n === 'class') nextType.name = 'any'
+            if (n === 'Function' || n === 'function') nextType.name = '((...args: any[]) => any)'
+            else if (n === 'class') nextType.name = '{ new(...args: any[]): any }'
             else if (['int', 'float', 'Number', 'integer'].includes(n)) nextType.name = 'number'
             else if (['bool'].includes(n)) nextType.name = 'boolean'
             else if (n === 'Object') nextType.name = 'object'
@@ -325,10 +325,7 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
             else if (n === 'array') nextType.name = 'Array'
             else if (n === 'promise') nextType.name = 'Promise'
             else if (n.startsWith('module:')) {
-                const [moduleName, ...importBindings] = n
-                    .replace('module:', '')
-                    .replace(/~/g, '.')
-                    .split('.')
+                const [moduleName, ...importBindings] = n.replace('module:', '').replace(/~/g, '.').split('.')
                 if (importBindings.length > 1)
                     console.warn(`Unexpected dot in exportBinding "${importBindings.join('.')}" in ${ctx.sourceFile}`)
                 else if (importBindings.length === 0) {

@@ -4,26 +4,26 @@ import { SourceFileReplacer } from './SourceFileReplacer'
 
 export function dtsFixes(dtsRoot: string) {
     const dtsProject = new Project({
-        compilerOptions: {}
+        compilerOptions: {},
     })
     dtsProject.addSourceFilesAtPaths(join(dtsRoot, '**/*.d.ts'))
-    for (const each of dtsProject.getSourceFiles().map(x => new SourceFileReplacer(x))) {
-        each.touchSourceFile(s => {
+    for (const each of dtsProject.getSourceFiles().map((x) => new SourceFileReplacer(x))) {
+        each.touchSourceFile((s) => {
             /**
              * Fix import { EventEmitter } from 'node_modules/@types/node/events'
              */
             const i = s
                 .getImportDeclarations()
-                .filter(x => x.getModuleSpecifierValue().endsWith('node_modules/@types/node/events'))
-            i.forEach(x => x.setModuleSpecifier('events'))
+                .filter((x) => x.getModuleSpecifierValue().endsWith('node_modules/@types/node/events'))
+            i.forEach((x) => x.setModuleSpecifier('events'))
             // Fix: https://github.com/microsoft/TypeScript/issues/35932
             removeExtraMethods(s)
         })
-        each.replace(sf => {
+        each.replace((sf) => {
             return (
                 sf
                     .split('\n')
-                    .map(x => {
+                    .map((x) => {
                         if (x.startsWith('export const')) return x
                         return x.replace(/typeof /g, '')
                     })
@@ -46,6 +46,7 @@ export function dtsFixes(dtsRoot: string) {
                         `import { SAS as SAS_1 } from "./verification/SAS";`,
                         `import { SAS } from "./verification/SAS";`
                     )
+                    .replace(`Promise<import(`, `Promise<typeof import(`)
             )
         })
         each.apply()
@@ -75,5 +76,5 @@ const eventEmitterMethods = [
     'removeListener',
     'off',
     'removeAllListeners',
-    'setMaxListeners'
+    'setMaxListeners',
 ] as const
