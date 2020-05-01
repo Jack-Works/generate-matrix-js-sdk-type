@@ -45,6 +45,9 @@ MatrixError.prototype.constructor = MatrixError;`,
                 // {Object.<string, function(new: module:modulePath.ExportPath)>}
                 // => {Record.<string, module:modulePath.ExportPath)>}
                 .replace(/Object..string. function.new: module:(.+)\)./g, `Record<string, module:$1>`)
+                // https://matrix-org.github.io/matrix-js-sdk/5.2.0/module-crypto_store_base-CryptoStore.html
+                // it's an empty interface
+                .replace(/module:crypto.store.base~CryptoStore/g, '{}')
         )
         _.apply()
     }
