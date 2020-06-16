@@ -15,7 +15,7 @@ export function es5ClassUpgrade(project: Project) {
             if (!has) continue
         }
 
-        let diagnostics = getDiag(fileName, sourceFile)
+        let diagnostics = getDiag(fileName)
         // some diagnostics fixes may have no effect even throw so we should prevent a dead loop
         let ignoreLastNDiagnostic = 0
         while (diagnostics.length - ignoreLastNDiagnostic > 0) {
@@ -46,32 +46,15 @@ export function es5ClassUpgrade(project: Project) {
                 if (diag.getCode() === DIAG_UPGRADE_CLASS_TO_ES6) {
                     log('Class upgraded for ', fileName)
                 }
-                diagnostics = getDiag(fileName, sourceFile)
+                diagnostics = getDiag(fileName)
             } catch (e) {
                 console.error(e)
                 ignoreLastNDiagnostic += 1
             }
         }
-        const r = new SourceFileReplacer(sourceFile)
-        const path = sourceFile.getFilePath()
-        // https://github.com/microsoft/TypeScript/pull/35219
-        if (path.endsWith('store/indexeddb-local-backend.js')) {
-            r.replace(x =>
-                x
-                    .replace(/    async\n +\/\*\*/, '/**')
-                    .replace(
-                        ` setOutOfBandMembers(roomId, membershipEvents) {`,
-                        'async setOutOfBandMembers(roomId, membershipEvents) {'
-                    )
-            )
-            // https://github.com/microsoft/TypeScript/pull/35219
-        } else if (path.endsWith('store/memory.js')) {
-            r.replace(x => x.slice(0, -15))
-        }
-        r.apply()
     }
 
-    function getDiag(fileName: string, sourceFile: SourceFile) {
+    function getDiag(fileName: string) {
         return languageService.getSuggestionDiagnostics(fileName).filter(x => {
             return x.getCode() === DIAG_UPGRADE_CLASS_TO_ES6
         })

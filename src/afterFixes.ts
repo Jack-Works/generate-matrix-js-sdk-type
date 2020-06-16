@@ -4,14 +4,12 @@ import { tryReplace } from './fixForCrashes'
 /**
  * Patch all JSDoc style type reference to any
  */
-const pattern = /export \{ _(.+?) as (.+?) \}/g
 export function afterFixes(project: Project) {
     for (let sourceFile of project.getSourceFiles()) {
         tryReplace(project, sourceFile.getFilePath(), x =>
             x
                 // JSDoc style type reference
                 .replace(/{\??module:.+?}/g, `{any}`)
-                .replace(pattern, '')
         )
     }
 }

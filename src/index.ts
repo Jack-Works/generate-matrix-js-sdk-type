@@ -49,7 +49,6 @@ afterFixes(project)
 // project.save()
 
 // const needEmit = false
-// dtsFixes(dtsRoot)
 const needEmit = true
 needEmit &&
     (console.log('Emitting .d.ts files'), true) &&

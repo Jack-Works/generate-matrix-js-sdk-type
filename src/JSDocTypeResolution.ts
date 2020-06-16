@@ -21,7 +21,7 @@ import { SourceFileReplacer } from './SourceFileReplacer'
  * Second step, run a transform on all files to transform JSDoc type to TS type.
  */
 export function JSDocTypeResolution(project: Project, matrixRoot: string) {
-    const moduleMap = resolveJSDocModules(project)
+    const [moduleMap, exports] = resolveJSDocModules(project)
     function appendModuleAtPath(moduleName: string, filePath = moduleName + '.js') {
         moduleMap.set(moduleName, project.getSourceFileOrThrow(join(matrixRoot, filePath)).getFilePath())
     }
@@ -43,7 +43,6 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
         symbolCache.set(target, result)
         return result
     }
-
     for (const _ of project.getSourceFiles().map((x) => new SourceFileReplacer(x))) {
         const fileName = _.sourceFile.getFilePath()
         log('Resolving JSDoc linking for', fileName)
@@ -53,6 +52,7 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
             project: project,
             matrixRoot: matrixRoot,
             sourceFile: fileName,
+            exportsMap: exports,
         }
         _.touchSourceFile(function access(_: Node<ts.Node>) {
             const replaceMap = new Map<string, string>()
@@ -135,7 +135,9 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
 function resolveJSDocModules(project: Project) {
     type JSDocModule = string
     type TypeScriptSourceFile = string
+    type ExportBindingName = string
     const map = new Map<JSDocModule, TypeScriptSourceFile>()
+    const exports = new Map<JSDocModule, ExportBindingName[]>()
 
     for (const sourceFile of project.getSourceFiles()) {
         for (const nodeWithComment of sourceFile.getStatementsWithComments()) {
@@ -147,11 +149,13 @@ function resolveJSDocModules(project: Project) {
                 for (const tag of parsed.tags) {
                     if (!tag.name) break
                     map.set(tag.name, sourceFile.getFilePath())
+                    const decl = sourceFile.getExportedDeclarations()
+                    exports.set(tag.name, [...decl.keys()])
                 }
             }
         }
     }
-    return map
+    return [map, exports] as const
 }
 
 function transformJSDocComment(comment: string, replaceContext: JSDocReplaceContext): { nextComment: string } | null {
@@ -171,7 +175,8 @@ function transformJSDocComment(comment: string, replaceContext: JSDocReplaceCont
             convertToOptionalName(x)
             return x
         })
-        .map<jsdoc.Tag>((tag) => ({ ...tag, type: map(replaceContext)(tag.type) }))
+        // .map<jsdoc.Tag>((tag) => ({ ...tag, type: outerPatch(map(replaceContext)(tag.type)) }))
+        .map<jsdoc.Tag>((tag) => ({ ...tag, type: (map(replaceContext)(tag.type)) }))
     // ? collect all props
     for (const tag of parsedTags) {
         if (!tag.name?.includes('.')) continue
@@ -232,6 +237,7 @@ interface JSDocReplaceContext {
      * JSDocResolveMap<JSDocModule, Path>
      */
     moduleMap: ReadonlyMap<string, string>
+    exportsMap: ReadonlyMap<string, string[]>
     project: Project
     matrixRoot: string
     sourceFile: string
@@ -296,6 +302,12 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
         }
         // Type<applications>
         case jsdoc.Syntax.TypeApplication: {
+            // if (nextType.applications.length === 0 && nextType.expression.type === jsdoc.type.Syntax.NameExpression && nextType.expression.name === 'Array') {
+            //     return [ArrayOfAnyNode, ctx]
+            // }
+            // if (nextType.applications.length === 0 && nextType.expression.type === jsdoc.type.Syntax.NameExpression && nextType.expression.name === 'Promise') {
+            //     return [PromiseOfAnyNode, ctx]
+            // }
             return [
                 {
                     ...nextType,
@@ -316,14 +328,11 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
         // Special handled type.
         case jsdoc.Syntax.NameExpression: {
             const n = nextType.name
-            if (n === 'Function' || n === 'function') nextType.name = '((...args: any[]) => any)'
-            else if (n === 'class') nextType.name = '{ new(...args: any[]): any }'
-            else if (['int', 'float', 'Number', 'integer'].includes(n)) nextType.name = 'number'
+            if (n === 'class') nextType.name = '{ new(...args: any[]): any }'
+            else if (['int', 'float', 'integer'].includes(n)) nextType.name = 'number'
             else if (['bool'].includes(n)) nextType.name = 'boolean'
             else if (n === 'Object') nextType.name = 'object'
-            else if (n === 'String') nextType.name = 'string'
-            else if (n === 'array') nextType.name = 'Array'
-            else if (n === 'promise') nextType.name = 'Promise'
+            else if (n === 'event') nextType.name = 'any'
             else if (n.startsWith('module:')) {
                 const [moduleName, ...importBindings] = n.replace('module:', '').replace(/~/g, '.').split('.')
                 if (importBindings.length > 1)
@@ -348,7 +357,15 @@ function JSDocTagReplace(type: jsdoc.Type, ctx: JSDocReplaceContext): [jsdoc.Typ
                 }
                 nextType.name = importBindings.join('.')
             }
+            for (const [jsdocModuleName, bindings] of ctx.exportsMap) {
+                if (bindings.includes(n)) wellKnownImport(jsdocModuleName, n)
+            }
             return [nextType, ctx]
+            function wellKnownImport(path: string, name: string) {
+                const imports = ctx.appendESImports.get(path) || new Set()
+                imports.add(name)
+                ctx.appendESImports.set(path, imports)
+            }
         }
         case jsdoc.Syntax.FunctionType: {
             // TODO: Transform to TypeScript type
@@ -367,6 +384,30 @@ function clone<T>(x: T): T {
 function map(ctx: JSDocReplaceContext) {
     return <T extends jsdoc.Type | undefined | null>(x: T) => (x ? (JSDocTagReplace(x!, ctx)[0] as T) : (x as T))
 }
+// const PromiseOfAnyNode = of({
+//     type: jsdoc.type.Syntax.TypeApplication,
+//     expression: of({
+//         type: jsdoc.type.Syntax.NameExpression,
+//         name: 'Promise',
+//     }),
+//     applications: [of({ type: jsdoc.type.Syntax.AllLiteral })]
+// })
+// const ArrayOfAnyNode = of({
+//     type: jsdoc.type.Syntax.TypeApplication,
+//     expression: of({
+//         type: jsdoc.type.Syntax.NameExpression,
+//         name: 'Array',
+//     }),
+//     applications: [of({ type: jsdoc.type.Syntax.AllLiteral })]
+// })
+// function outerPatch<T extends jsdoc.Type | undefined | null>(x: T) {
+//     if (!x) return x
+//     const string = jsdoc.type.stringify(x!)
+// if (string === 'Promise') return PromiseOfAnyNode
+// if (string === 'Array') return ArrayOfAnyNode
+//     return x
+// }
+function of<T extends jsdoc.Type>(x: T) { return x }
 function getDefaultExportDeclaration(x: Symbol): string | undefined {
     const zeroDecl = x?.getDeclarations()?.[0]
     const bindingName =
