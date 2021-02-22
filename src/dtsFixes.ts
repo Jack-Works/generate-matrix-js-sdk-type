@@ -7,8 +7,12 @@ export function dtsFixes(dtsRoot: string) {
         compilerOptions: {},
     })
     dtsProject.addSourceFilesAtPaths(join(dtsRoot, '**/*.d.ts'))
+    let added = false
     for (const each of dtsProject.getSourceFiles().map((x) => new SourceFileReplacer(x))) {
         each.touchSourceFile((s) => {
+            for (const i of s.getImportDeclarations()) {
+                if (!i.compilerNode.importClause) i.remove()
+            }
             /**
              * Fix import { EventEmitter } from 'node_modules/@types/node/events'
              */
@@ -16,6 +20,10 @@ export function dtsFixes(dtsRoot: string) {
                 .getImportDeclarations()
                 .filter((x) => x.getModuleSpecifierValue().endsWith('node_modules/@types/node/events'))
             i.forEach((x) => x.setModuleSpecifier('events'))
+            if (!added && each.sourceFile.getFilePath().endsWith('index.ts')) {
+                added = true
+                s.addImportDeclaration({ moduleSpecifier: './@types/global.d' })
+            }
         })
         each.replace((sf) => {
             return (
@@ -33,6 +41,7 @@ export function dtsFixes(dtsRoot: string) {
                         `import { SAS as SAS_1 } from "./verification/SAS";`,
                         `import { SAS } from "./verification/SAS";`
                     )
+                    .replace('import MatrixEvent from', 'import { MatrixEvent } from')
                     .replace(`Promise<import(`, `Promise<typeof import(`)
                     .replace(/Olm.PkSigning/g, 'any')
                     .replace('Array<Array<string, string>>', 'string[][]')
