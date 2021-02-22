@@ -17,8 +17,5 @@
         "start": "ts-node -T ./src/index.ts",
         "test": "tsc --project test",
         "debug": "node --inspect-brk -r ts-node/register ./src/index.ts"
-    },
-    "resolutions": {
-        "ts-morph/**/typescript": "^4.0.0-dev.20200615"
     }
 }
