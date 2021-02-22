@@ -29,7 +29,7 @@ const compilerOptions: CompilerOptions = {
     moduleResolution: ModuleResolutionKind.NodeJs,
 }
 
-// rimraf.sync(dtsRoot)
+rimraf.sync(dtsRoot)
 console.log('Old dts cleared')
 
 const project = new Project({
