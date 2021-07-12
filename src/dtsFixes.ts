@@ -1,5 +1,5 @@
 import { join } from 'path'
-import { Project, SourceFile } from 'ts-morph'
+import { Project } from 'ts-morph'
 import { SourceFileReplacer } from './SourceFileReplacer'
 
 export function dtsFixes(dtsRoot: string) {
@@ -7,7 +7,6 @@ export function dtsFixes(dtsRoot: string) {
         compilerOptions: {},
     })
     dtsProject.addSourceFilesAtPaths(join(dtsRoot, '**/*.d.ts'))
-    let added = false
     for (const each of dtsProject.getSourceFiles().map((x) => new SourceFileReplacer(x))) {
         each.touchSourceFile((s) => {
             for (const i of s.getImportDeclarations()) {
@@ -20,10 +19,6 @@ export function dtsFixes(dtsRoot: string) {
                 .getImportDeclarations()
                 .filter((x) => x.getModuleSpecifierValue().endsWith('node_modules/@types/node/events'))
             i.forEach((x) => x.setModuleSpecifier('events'))
-            if (!added && each.sourceFile.getFilePath().endsWith('index.ts')) {
-                added = true
-                s.addImportDeclaration({ moduleSpecifier: './@types/global.d' })
-            }
         })
         each.replace((sf) => {
             return (
@@ -41,10 +36,19 @@ export function dtsFixes(dtsRoot: string) {
                         `import { SAS as SAS_1 } from "./verification/SAS";`,
                         `import { SAS } from "./verification/SAS";`
                     )
-                    .replace('import MatrixEvent from', 'import { MatrixEvent } from')
                     .replace(`Promise<import(`, `Promise<typeof import(`)
                     .replace(/Olm.PkSigning/g, 'any')
                     .replace('Array<Array<string, string>>', 'string[][]')
+                    .replace(
+                        'getAccountData(eventType: EventType | string): MatrixEvent;',
+                        'getAccountData(eventType: EventType | string): MatrixEvent | undefined;'
+                    )
+                    .replace(/from ".+matrix-js-sdk\/src\//, 'from "./')
+                    .replace('import OlmDevice from', 'import {OlmDevice} from')
+                    .replace('import { Base as Verification } from', 'import { VerificationBase as Verification } from')
+                    .replace('setSinkId(outputId: string);', 'setSinkId(outputId: string): Promise<void>;')
+                    .replace(/implements CryptoStore/g, '')
+                    .replace(/\<DesktopCapturerSource\>/g, `<{id: string;name: string;thumbnailURL: string;}>`)
             )
         })
         each.apply()

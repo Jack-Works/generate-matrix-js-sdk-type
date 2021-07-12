@@ -6,7 +6,7 @@
 
 # Generate-matrix-js-sdk-type
 
-Current commit hash of matrix-js-sdk: [f547fa732f1c8261231ce4ca929fbbb7d4030560](https://github.com/matrix-org/matrix-js-sdk/commit/f547fa732f1c8261231ce4ca929fbbb7d4030560) (v9.7.0+)
+Current commit hash of matrix-js-sdk: [5ce787c6](https://github.com/matrix-org/matrix-js-sdk/commit/5ce787c6) (v12.0.1+)
 
 ## How to use
 

@@ -6,7 +6,7 @@ import { tryReplace } from './fixForCrashes'
  */
 export function afterFixes(project: Project) {
     for (let sourceFile of project.getSourceFiles()) {
-        tryReplace(project, sourceFile.getFilePath(), x =>
+        tryReplace(project, sourceFile.getFilePath(), (x) =>
             x
                 // JSDoc style type reference
                 .replace(/{\??module:.+?}/g, `{any}`)

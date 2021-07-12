@@ -40,7 +40,6 @@ console.log('Using TypeScript version:', version)
 
 project.addSourceFilesAtPaths(join(matrixRoot, '**/*.js'))
 project.addSourceFilesAtPaths(join(matrixRoot, '**/*.ts'))
-project.addSourceFileAtPath(join(matrixRoot, 'crypto/store/base.js'))
 
 preFix(project, matrixRoot)
 // upgrade class to ES6

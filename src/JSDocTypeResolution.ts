@@ -9,7 +9,6 @@ import {
 } from 'ts-morph'
 import jsdoc from 'doctrine'
 import { join } from 'path'
-import { log } from './log'
 import { SourceFileReplacer } from './SourceFileReplacer'
 
 /**
@@ -25,13 +24,13 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
     function appendModuleAtPath(moduleName: string, filePath = moduleName + '.js') {
         moduleMap.set(moduleName, project.getSourceFileOrThrow(join(matrixRoot, filePath)).getFilePath())
     }
-    appendModuleAtPath('crypto/store/base')
+    appendModuleAtPath('crypto/store/base', 'crypto/store/base.ts')
     appendModuleAtPath('crypto/OlmDevice')
-    appendModuleAtPath('crypto/algorithms/base')
+    appendModuleAtPath('crypto/algorithms/base', 'crypto/algorithms/base.ts')
     appendModuleAtPath('crypto/verification/Base')
     appendModuleAtPath('http-api')
-    appendModuleAtPath('base-apis')
-    appendModuleAtPath('models/event')
+    appendModuleAtPath('models/event', 'models/event.ts')
+    appendModuleAtPath('crypto/verification/request/VerificationRequest')
 
     const symbolCache = new Map<string, readonly [Symbol[], Symbol | undefined]>()
     function getExportsOfPath(target: string) {
@@ -45,7 +44,7 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
     }
     for (const _ of project.getSourceFiles().map((x) => new SourceFileReplacer(x))) {
         const fileName = _.sourceFile.getFilePath()
-        log('Resolving JSDoc linking for', fileName)
+        if (fileName.endsWith('.ts')) continue
         const jsdocReplaceContext: JSDocReplaceContext = {
             appendESImports: new Map(),
             moduleMap: moduleMap,
@@ -93,16 +92,28 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
                                         console.warn(`Invalid binding name at "${target}"`)
                                         continue
                                     }
-                                    const relatedSymbol = exports.find((x) => x.getName() === binding)
-                                    if (relatedSymbol) {
-                                        namedImports.push({
-                                            name: binding,
-                                            kind: StructureKind.ImportSpecifier,
-                                        })
-                                    } else {
+                                    resolveBindingName: {
+                                        for (const remoteSymbol of exports) {
+                                            const name = remoteSymbol.getName()
+                                            if (name === binding) {
+                                                namedImports.push({
+                                                    name: binding,
+                                                    kind: StructureKind.ImportSpecifier,
+                                                })
+                                                break resolveBindingName
+                                            } else if (name === 'I' + binding) {
+                                                // Type => IType
+                                                namedImports.push({
+                                                    name: name,
+                                                    alias: binding,
+                                                    kind: StructureKind.ImportSpecifier,
+                                                })
+                                                break resolveBindingName
+                                            }
+                                        }
                                         const warn = () =>
                                             console.warn(
-                                                `Unresolved import "${binding}" at file ${sourceFile.getFilePath()}`
+                                                `Unresolved import "${binding}" from "${target}" at file ${sourceFile.getFilePath()}`
                                             )
                                         if (defaultExport) {
                                             const bindingName = getDefaultExportDeclaration(defaultExport)
@@ -119,7 +130,7 @@ export function JSDocTypeResolution(project: Project, matrixRoot: string) {
                                     namedImports: namedImports,
                                 }
                             })
-                            .filter((x) => x)
+                            .filter(Boolean)
                     )
             )
             _.apply()
@@ -176,7 +187,7 @@ function transformJSDocComment(comment: string, replaceContext: JSDocReplaceCont
             return x
         })
         // .map<jsdoc.Tag>((tag) => ({ ...tag, type: outerPatch(map(replaceContext)(tag.type)) }))
-        .map<jsdoc.Tag>((tag) => ({ ...tag, type: (map(replaceContext)(tag.type)) }))
+        .map<jsdoc.Tag>((tag) => ({ ...tag, type: map(replaceContext)(tag.type) }))
     // ? collect all props
     for (const tag of parsedTags) {
         if (!tag.name?.includes('.')) continue
@@ -407,7 +418,9 @@ function map(ctx: JSDocReplaceContext) {
 // if (string === 'Array') return ArrayOfAnyNode
 //     return x
 // }
-function of<T extends jsdoc.Type>(x: T) { return x }
+function of<T extends jsdoc.Type>(x: T) {
+    return x
+}
 function getDefaultExportDeclaration(x: Symbol): string | undefined {
     const zeroDecl = x?.getDeclarations()?.[0]
     const bindingName =

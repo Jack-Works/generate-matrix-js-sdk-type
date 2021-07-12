@@ -9,29 +9,29 @@ client.login('m.login.password', { user: 'USERID', password: 'hunter2' }).then(r
 })
 console.log(client.getAccessToken())
 client.startClient({})
-client.once('sync', function(state, prevState, res) {
+client.once('sync', function (state, _prevState, _res) {
     console.log(state) // state will be 'PREPARED' when the client is ready to use
 })
-client.on('event', function(event) {
+client.on('event', function (event) {
     console.log(event.getType())
     console.log(event)
 })
-client.on('Room.timeline', function(event, room, toStartOfTimeline) {
+client.on('Room.timeline', function (event, _room, _toStartOfTimeline) {
     console.log(event.event)
 })
 // client.client.getRooms() returns an array of room objects
 var rooms = client.getRooms()
-rooms.forEach(room => {
+rooms.forEach((room) => {
     console.log(room.roomId)
 })
-rooms.forEach(room => {
+rooms.forEach((room) => {
     var members = room.getJoinedMembers()
-    members.forEach(member => {
+    members.forEach((member) => {
         console.log(member.name)
     })
 })
-rooms.forEach(room => {
-    room.timeline.forEach(t => {
+rooms.forEach((room) => {
+    room.timeline.forEach((t) => {
         console.log(JSON.stringify(t.event.content))
     })
 })
@@ -39,18 +39,18 @@ var testRoomId = '!jhpZBTbckszblMYjMK:matrix.org'
 
 var content = {
     body: 'Hello World',
-    msgtype: 'm.text'
+    msgtype: 'm.text',
 }
 
 client
     .sendEvent(testRoomId, 'm.room.message', content, '')
-    .then(res => {
+    .then((_res) => {
         // message sent successfully
     })
-    .catch(err => {
+    .catch((err) => {
         console.log(err)
     })
-client.on('Room.timeline', function(event, room, toStartOfTimeline) {
+client.on('Room.timeline', function (event, _room, _toStartOfTimeline) {
     // we know we only want to respond to messages
     if (event.getType() !== 'm.room.message') {
         return
@@ -62,12 +62,12 @@ client.on('Room.timeline', function(event, room, toStartOfTimeline) {
     }
 })
 
-function sendNotice(body) {
+function sendNotice(body: string) {
     var content = {
         body: body.substring(1),
-        msgtype: 'm.notice'
+        msgtype: 'm.notice',
     }
-    client.sendEvent(testRoomId, 'm.room.message', content, '', (err, res) => {
+    client.sendEvent(testRoomId, 'm.room.message', content, '', (err, _res) => {
         console.log(err)
     })
 }

@@ -1,6 +1,5 @@
-import { Project, SourceFile } from 'ts-morph'
+import { Project } from 'ts-morph'
 import { log } from './log'
-import { SourceFileReplacer } from './SourceFileReplacer'
 
 // This constructor function may be converted to a class declaration.
 const DIAG_UPGRADE_CLASS_TO_ES6 = 80002
@@ -9,9 +8,14 @@ export function es5ClassUpgrade(project: Project) {
     // Transform class from ES5 to ES6
     for (let sourceFile of project.getSourceFiles()) {
         const fileName = sourceFile.getFilePath()
-        if (fileName.endsWith('.d.ts')) continue
+        if (fileName.endsWith('.ts')) continue
         if (!sourceFile.getText().includes('prototype')) {
-            const has = ['pushprocessor', 'room', 'search-result'].some(x => fileName.includes(x))
+            const has = [
+                // src/pushprocessor.js
+                'pushprocessor',
+                // src/models/search-result.js
+                'search-result',
+            ].some((x) => fileName.includes(x))
             if (!has) continue
         }
 
@@ -55,7 +59,7 @@ export function es5ClassUpgrade(project: Project) {
     }
 
     function getDiag(fileName: string) {
-        return languageService.getSuggestionDiagnostics(fileName).filter(x => {
+        return languageService.getSuggestionDiagnostics(fileName).filter((x) => {
             return x.getCode() === DIAG_UPGRADE_CLASS_TO_ES6
         })
     }
