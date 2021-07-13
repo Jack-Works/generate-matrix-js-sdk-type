@@ -12,7 +12,7 @@ import { dtsFixes } from './dtsFixes'
 import { readFileSync, writeFileSync } from 'fs'
 
 const matrixRoot = join(__dirname, '../../matrix-js-sdk/src/')
-const dtsRoot = join(__dirname, '../../matrix-js-sdk-type/dts')
+const dtsRoot = join(__dirname, '../../matrix-js-sdk-type/src')
 const sourceRoot = 'node_modules/matrix-js-sdk/src'
 
 const compilerOptions: CompilerOptions = {

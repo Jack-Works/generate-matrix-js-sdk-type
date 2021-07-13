@@ -1,0 +1,7 @@
+lockfileVersion: 5.3
+
+specifiers:
+  '@types/matrix-js-sdk': ../../matrix-js-sdk-type
+
+dependencies:
+  '@types/matrix-js-sdk': link:../../matrix-js-sdk-type

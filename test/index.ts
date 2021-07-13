@@ -1,10 +1,13 @@
-const sdk = require('matrix-js-sdk') as typeof import('../../matrix-js-sdk-type')
-const client = sdk.createClient({
+import { createClient } from 'matrix-js-sdk'
+import { WebStorageSessionStore } from 'matrix-js-sdk/src/store/session/webstorage'
+
+new WebStorageSessionStore({}).getAllEndToEndDevices()
+const client = createClient({
     baseUrl: 'https://matrix.org',
     accessToken: '....MDAxM2lkZW50aWZpZXIga2V5CjAwMTBjaWQgZ2Vu....',
-    userId: '@USERID:matrix.org'
+    userId: '@USERID:matrix.org',
 })
-client.login('m.login.password', { user: 'USERID', password: 'hunter2' }).then(response => {
+client.login('m.login.password', { user: 'USERID', password: 'hunter2' }).then((response) => {
     console.log(response.access_token)
 })
 console.log(client.getAccessToken())
